@@ -113,6 +113,10 @@ Sin `INSERT` ni `DELETE` para clientes: el perfil lo crea el trigger.
 
 RLS: solo admin (`is_admin()`) para SELECT/INSERT/UPDATE. Un vendedor no la ve.
 
+`vendor_invites.establishment_id` es `uuid NOT NULL` **sin FK** en 1.2 porque `establishments` se crea en 1.3.
+
+**Pendiente para 1.3:** agregar la FK `establishment_id → public.establishments (id)`, backfillear `establishments.owner_id` desde las invitaciones aceptadas (`accepted_by`) y probar que un `establishment_id` inexistente falla después de la FK.
+
 ### Funciones y trigger de registro
 
 ```sql
