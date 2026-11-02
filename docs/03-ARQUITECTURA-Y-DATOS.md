@@ -105,7 +105,7 @@ Sin `INSERT` ni `DELETE` para clientes: el perfil lo crea el trigger.
 |---|---|---|
 | `id` | uuid PK | |
 | `email` | text | Se compara en minúsculas |
-| `establishment_id` | uuid | FK; el local que gestionará |
+| `establishment_id` | uuid | NOT NULL; la FK se agrega en 1.3 |
 | `invited_by` | uuid | FK `profiles.id` (admin) |
 | `expires_at` | timestamptz | Por defecto 7 días |
 | `accepted_at` / `accepted_by` | timestamptz / uuid | Nulos hasta aceptar |
@@ -151,7 +151,7 @@ begin
     insert into public.profiles (id, role, email, full_name)
     values (new.id, 'vendor', v_email, coalesce(new.raw_user_meta_data->>'full_name', ''));
     update public.vendor_invites set accepted_at = now(), accepted_by = new.id where id = v_invite.id;
-    update public.establishments set owner_id = new.id where id = v_invite.establishment_id;
+    -- 1.3: asignar owner_id y agregar la FK (public.establishments aún no existe).
   elsif v_email like '%@uptc.edu.co' then
     insert into public.profiles (id, role, email, full_name)
     values (new.id, 'student', v_email, coalesce(new.raw_user_meta_data->>'full_name', ''));
