@@ -72,6 +72,8 @@ export async function insertEstablishment(
     name?: string;
     ownerId?: string | null;
     status?: "draft" | "pending" | "active" | "suspended";
+    lat?: number;
+    lon?: number;
   } = {},
 ) {
   const id = randomUUID();
@@ -87,8 +89,8 @@ export async function insertEstablishment(
       options.ownerId ?? null,
       options.name ?? "Local de prueba",
       `local-${id}`,
-      -73.3567,
-      5.552,
+      options.lon ?? -73.3567,
+      options.lat ?? 5.552,
       options.status ?? "active",
     ],
   );

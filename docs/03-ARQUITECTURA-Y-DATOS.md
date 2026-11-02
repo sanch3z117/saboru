@@ -378,10 +378,12 @@ language sql security definer set search_path = '' as $$
   insert into public.product_views (product_id)
   select p.id from public.products p
   join public.establishments e on e.id = p.establishment_id
-  where p.id = p_product_id and e.status = 'active';
+  where p.id = p_product_id and p.available and e.status = 'active';
 $$;
 grant execute on function public.log_product_view(uuid) to anon, authenticated;
 ```
+
+`log_product_view` exige producto disponible y local activo. `log_search` valida presupuesto > 0 (o null), categoría ≤ 50 y bloque existente si viene. Ambas son `security definer` con `search_path = ''`.
 
 Se llaman desde el servidor con rate limit. **No se encolan offline.**
 
@@ -467,6 +469,7 @@ order by distance_m asc, p.price_cop asc;
 ```
 
 - El **plan nunca entra en el `order by`**. Lo patrocinado se muestra en una sección aparte marcada "Destacado".
+- `search_products` es `stable security definer` con `search_path = ''`: `p_budget` null significa "sin límite" (no cero filas), `p_block_id` es obligatorio, `0 < p_radius_m <= 5000` y `p_category` null o de máximo 50 caracteres.
 - Hora siempre en `America/Bogota`, calculada en el servidor (online) o con el reloj del dispositivo ajustado a esa zona (offline; solo para mostrar, nunca para reglas de negocio).
 - Prueba obligatoria: la función pura y el RPC dan el mismo resultado con los mismos datos.
 
