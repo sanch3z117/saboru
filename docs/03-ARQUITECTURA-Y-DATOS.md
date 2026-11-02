@@ -338,22 +338,22 @@ Toda reseña publicada muestra la insignia "Reseña verificada" porque el trigge
 |---|---|---|
 | `id` | uuid PK | |
 | `client_id` | uuid | Idempotencia offline |
-| `review_id` | uuid | FK |
-| `reporter_id` | uuid | FK `profiles.id` |
+| `review_id` | uuid | FK `reviews.id`, `on delete cascade` |
+| `reporter_id` | uuid | FK `profiles.id`, `default auth.uid()`, `on delete cascade` |
 | `reason` | text | Máx. 300 caracteres |
 | `status` | enum `open \| reviewed \| dismissed` | Solo admin lo cambia (RPC) |
 | `created_at` | timestamptz | |
 
-`unique (review_id, reporter_id)`. Estudiante: `INSERT` propio (solo `review_id`, `reason`, `client_id`) y `SELECT` propio. **El vendedor no ve reportes** (`reporter_id` es dato personal). Admin: todo vía `is_admin()` y RPC.
+`unique (review_id, reporter_id)` y `unique (reporter_id, client_id)`. Estudiante: `INSERT` propio (solo `review_id`, `reason`, `client_id`; `reporter_id` se llena con `default auth.uid()`), y `SELECT` propio solo mientras siga siendo estudiante institucional. **El vendedor no ve reportes** (`reporter_id` es dato personal). Admin: lectura de todos; el cambio de `status` va por RPC (1.7). Sin `UPDATE` ni `DELETE` para clientes.
 
 ### `favorites`
 
 | Campo | Tipo | Notas |
 |---|---|---|
 | `id` | uuid PK | |
-| `user_id` | uuid | FK `profiles.id` |
-| `establishment_id` | uuid | FK |
-| `product_id` | uuid null | FK |
+| `user_id` | uuid | FK `profiles.id`, `default auth.uid()`, `on delete cascade` |
+| `establishment_id` | uuid | FK `establishments.id`, `on delete cascade` |
+| `product_id` | uuid null | FK compuesta `(product_id, establishment_id)`, `on delete cascade` |
 | `created_at` | timestamptz | |
 
 ```sql
@@ -361,7 +361,7 @@ create unique index favorites_unique on public.favorites
   (user_id, establishment_id, coalesce(product_id, '00000000-0000-0000-0000-000000000000'));
 ```
 
-Estudiante: CRUD solo de las propias (`user_id = auth.uid()`). Nadie más.
+Estudiante: `SELECT`/`INSERT`/`DELETE` propias (`user_id = auth.uid()`) y solo mientras siga siendo estudiante institucional; sin `UPDATE`. Nadie más. La FK compuesta usa MATCH SIMPLE: si `product_id` es null solo se valida el local.
 
 ### `search_events` y `product_views` (analítica anónima)
 

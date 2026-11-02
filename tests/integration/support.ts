@@ -119,6 +119,41 @@ export async function insertProduct(
   return id;
 }
 
+export async function insertReview(
+  client: Client,
+  options: {
+    userId: string;
+    establishmentId: string;
+    productId: string;
+    clientId?: string;
+    comment?: string | null;
+    ratings?: [number, number, number, number, number];
+  },
+) {
+  const id = randomUUID();
+  const clientId = options.clientId ?? randomUUID();
+  const ratings = options.ratings ?? [4, 4, 4, 4, 4];
+
+  await client.query(
+    `insert into public.reviews
+       (id, client_id, user_id, product_id, establishment_id,
+        rating_sabor, rating_cantidad, rating_precio,
+        rating_presentacion, rating_calidad_precio, comment)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+    [
+      id,
+      clientId,
+      options.userId,
+      options.productId,
+      options.establishmentId,
+      ...ratings,
+      options.comment ?? "Comentario de prueba",
+    ],
+  );
+
+  return { id, clientId };
+}
+
 async function clearAuthContext(client: Client) {
   await client.query("reset role");
   await client.query("select set_config('request.jwt.claims', '', true)");
