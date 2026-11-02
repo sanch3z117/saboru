@@ -389,7 +389,7 @@ Se llaman desde el servidor con rate limit. **No se encolan offline.**
 
 ## RPC del vendedor (únicas lecturas de estadísticas)
 
-Todas verifican que el llamante sea dueño del establecimiento, devuelven agregados y **suprimen resultados con menos de N reseñas** (`public.min_reviews_for_stats()`, por defecto 5, confirmado en `docs/06-DECISIONES-PASO-0.md`).
+Todas verifican que el llamante sea dueño del establecimiento, devuelven agregados y **suprimen resultados con menos de N reseñas** (`public.min_reviews_for_stats()`, hard-code 5 en el MVP: no depende de un GUC de sesión que un cliente pudiera bajar; ver `docs/06-DECISIONES-PASO-0.md`).
 
 ```sql
 create function public.vendor_product_stats(p_establishment_id uuid)
@@ -417,14 +417,15 @@ grant execute on function public.vendor_product_stats(uuid) to authenticated;
 
 Mismo patrón para:
 
-- `vendor_top_products(p_establishment_id)`: productos más consultados (de `product_views`).
+- `vendor_top_products(p_establishment_id)`: hasta 10 productos más consultados (de `product_views`), solo del local.
 - `vendor_views_by_hour(p_establishment_id)`: consultas por hora (`America/Bogota`).
-- `vendor_campus_comparison(p_establishment_id)`: promedio del local vs. promedio del campus.
-- `vendor_recent_comments(p_establishment_id)`: comentarios recientes **sin autor ni id de usuario**, solo si el local supera el mínimo de reseñas.
+- `vendor_campus_comparison(p_establishment_id)`: promedio global de los 5 criterios del local vs. campus; sin filas si el local no alcanza el mínimo.
+- `vendor_recent_comments(p_establishment_id)`: últimos 10 comentarios no vacíos de reseñas `published`, con `product_id` y `product_name`, **sin autor ni id de usuario**, solo si el local supera el mínimo de reseñas.
+- Las RPC de vendedor son `stable`; las de admin, `volatile`.
 
 ## RPC de admin (`security definer`, verifican `is_admin()`)
 
-`admin_set_review_status(review_id, status)`, `admin_resolve_report(report_id, status)`, `admin_set_establishment_status(id, status)`, `admin_set_establishment_plan(id, plan)`, `admin_create_vendor_invite(email, establishment_id)`. Cambiar `plan` **no** altera promedios ni orden.
+`admin_set_review_status(review_id, status)`, `admin_resolve_report(report_id, status)`, `admin_set_establishment_status(id, status)`, `admin_set_establishment_plan(id, plan)`, `admin_create_vendor_invite(email, establishment_id)`. Cambiar `plan` **no** altera promedios ni orden. La invitación valida email normalizado, local existente y sin dueño, email no registrado y `invite_exists` si ya hay una abierta.
 
 ## Matriz RLS y permisos (resumen)
 

@@ -39,7 +39,7 @@
   - Con **3**, una sola reseña pesa 33 % del promedio y el dato es demasiado volátil; además, es más fácil inferir a quién pertenece una reseña.
   - Con **10**, casi ningún producto tendría datos durante los primeros meses y el panel del vendedor nacería vacío.
   - **5** es el punto medio: una reseña pesa 20 %, el vendedor empieza a ver señal y se protege la privacidad.
-- **Implementación:** `min_reviews_for_stats()` con valor por defecto 5 y configurable por entorno. Solo cuentan reseñas `published`; las ocultas y pendientes no suman. El vendedor nunca recibe `user_id`.
+- **Implementación:** `min_reviews_for_stats()` con valor fijo **5** (hard-code). No usar un GUC de sesión: un cliente con acceso directo podría bajarlo y romper el umbral de privacidad. Solo cuentan reseñas `published`; las ocultas y pendientes no suman. El vendedor nunca recibe `user_id`.
 - **UI:** si un producto no llega al mínimo, mostrar “Aún no hay suficientes reseñas” en lugar de un promedio engañoso.
 
 ## 4. Rate limit: Upstash Ratelimit Free
