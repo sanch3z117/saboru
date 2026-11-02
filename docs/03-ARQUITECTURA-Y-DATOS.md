@@ -521,6 +521,7 @@ UPSTASH_REDIS_REST_TOKEN=
 ## Riesgos técnicos
 
 - **PostGIS:** disponible en el plan Free; se instala en el schema `extensions` (no en `public`). Confirmar en el dashboard antes de 1.1.
+- **CLI de Supabase:** fijado en `2.122.1` (`v2.stable`). La `3.0.0` falla al inicializar el esquema con la imagen de Postgres 15 (`Invalid package config /app/package.json`); revisar al actualizar la imagen o el CLI.
 - **Magic link en correos institucionales:** probar entrega y spam; si falla, OTP de 6 dígitos.
 - **Hooks de Auth:** confirmar si el *Before User Created hook* está disponible; si no, usar el trigger.
 - **Teselas del mapa:** MapTiler Free; mantener la atribución visible y caer a distancia en texto si falla o se agota la cuota.
