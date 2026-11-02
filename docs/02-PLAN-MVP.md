@@ -37,12 +37,12 @@ Un subpaso = una migración + sus pruebas de integración + un commit. Definici�
 
 - **1.1** Supabase local (`supabase start`), vincular el CLI, habilitar PostGIS. Commit: `chore(db): supabase local y postgis`
 - **1.2** `profiles`, enum de roles, funciones `is_admin()` e `is_institutional_student()`, trigger `handle_new_user`, `vendor_invites`, permisos por columna. Pruebas 1, 3 y 4 de abuso. Commit: `feat(db): perfiles, roles, invitaciones y dominio institucional`
-- **1.3** `campus_blocks`, `establishments` y `products` con constraints, índice GIST, permisos por columna y RLS. Pruebas 11 y 12 (parte de tablas). Commit: `feat(db): bloques, establecimientos y productos con rls`
+- **1.3** `campus_blocks` (con seed de los 6 bloques), `establishments` y `products` con constraints, índice GIST, permisos por columna y RLS. Pruebas 11 y 12 (parte de tablas). Commit: `feat(db): bloques, establecimientos y productos con rls`
 - **1.4** `reviews` con FK compuesta, trigger de 30 días, vistas `public_reviews` y `product_stats`. Pruebas 2, 5, 6 y 7. Commit: `feat(db): reseñas, regla de 30 dias y vistas publicas`
 - **1.5** `review_reports` y `favorites`. Commit: `feat(db): reportes y favoritos con rls`
 - **1.6** `search_events`, `product_views`, RPC de registro anónimo y RPC `search_products`. Commit: `feat(db): analitica anonima y busqueda`
 - **1.7** RPC del vendedor (agregados con mínimo de reseñas) y RPC de admin. Pruebas 8, 9, 10, 13 y 14. Commit: `feat(db): rpc de vendedor y admin`
-- **1.8** Seed ficticio (5 a 8 establecimientos, 20 a 30 productos, bloques) y generación de tipos. Commit: `feat(db): seed y tipos generados`
+- **1.8** Seed ficticio (5 a 8 establecimientos y 20 a 30 productos; los 6 bloques ya vienen de 1.3) y generación de tipos. Commit: `feat(db): seed y tipos generados`
 
 Cierre de fase: pasan las 14 pruebas de abuso de `docs/03`.
 

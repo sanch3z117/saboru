@@ -105,7 +105,7 @@ Sin `INSERT` ni `DELETE` para clientes: el perfil lo crea el trigger.
 |---|---|---|
 | `id` | uuid PK | |
 | `email` | text | Se compara en minúsculas |
-| `establishment_id` | uuid | NOT NULL; la FK se agrega en 1.3 |
+| `establishment_id` | uuid | NOT NULL; FK a `establishments.id` (desde 1.3) |
 | `invited_by` | uuid | FK `profiles.id` (admin) |
 | `expires_at` | timestamptz | Por defecto 7 días |
 | `accepted_at` / `accepted_by` | timestamptz / uuid | Nulos hasta aceptar |
@@ -113,9 +113,7 @@ Sin `INSERT` ni `DELETE` para clientes: el perfil lo crea el trigger.
 
 RLS: solo admin (`is_admin()`) para SELECT/INSERT/UPDATE. Un vendedor no la ve.
 
-`vendor_invites.establishment_id` es `uuid NOT NULL` **sin FK** en 1.2 porque `establishments` se crea en 1.3.
-
-**Pendiente para 1.3:** agregar la FK `establishment_id → public.establishments (id)`, backfillear `establishments.owner_id` desde las invitaciones aceptadas (`accepted_by`) y probar que un `establishment_id` inexistente falla después de la FK.
+En 1.3 se agregó la FK `establishment_id → public.establishments (id)` y el backfill de `establishments.owner_id` desde las invitaciones aceptadas (`accepted_by`), que solo toca locales sin dueño. Una invitación con `establishment_id` inexistente falla por FK (probado).
 
 ### Funciones y trigger de registro
 
@@ -151,7 +149,10 @@ begin
     insert into public.profiles (id, role, email, full_name)
     values (new.id, 'vendor', v_email, coalesce(new.raw_user_meta_data->>'full_name', ''));
     update public.vendor_invites set accepted_at = now(), accepted_by = new.id where id = v_invite.id;
-    -- 1.3: asignar owner_id y agregar la FK (public.establishments aún no existe).
+    update public.establishments e
+       set owner_id = new.id
+     where e.id = v_invite.establishment_id
+       and e.owner_id is null;
   elsif v_email like '%@uptc.edu.co' then
     insert into public.profiles (id, role, email, full_name)
     values (new.id, 'student', v_email, coalesce(new.raw_user_meta_data->>'full_name', ''));
@@ -445,6 +446,7 @@ Regla: ninguna tabla nueva sin `enable row level security` y sus políticas. Nun
 - Bucket `establishment-photos`: lectura pública; escritura solo en la ruta `{establishment_id}/...` si el usuario es dueño de ese establecimiento (política sobre `storage.objects`).
 - Nombres de archivo con UUID aleatorio, tipos permitidos jpeg/png/webp y tamaño máximo (5 MB, por confirmar).
 - Un vendedor no puede escribir, sobrescribir ni borrar fotos de otro local.
+- La parte de Storage de la prueba 12 se valida en la Fase 5; en 1.3 solo se probó la parte de tabla (`photos` de otro local no se puede actualizar).
 
 ## Búsqueda del catálogo
 
