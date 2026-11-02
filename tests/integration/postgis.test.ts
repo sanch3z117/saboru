@@ -54,8 +54,8 @@ describe("geoespacial disponible para los roles de la app", () => {
   it("califica geography y st_dwithin desde extensions como postgres", async () => {
     const result = await client.query<BooleanRow>(`
       select extensions.st_dwithin(
-        extensions.st_point(5.5520, -73.3567)::extensions.geography,
-        extensions.st_point(5.5526, -73.3561)::extensions.geography,
+        extensions.st_point(-73.3567, 5.5520)::extensions.geography,
+        extensions.st_point(-73.3561, 5.5526)::extensions.geography,
         1000
       ) as within
     `);
@@ -70,8 +70,8 @@ describe("geoespacial disponible para los roles de la app", () => {
 
       const result = await client.query<BooleanRow>(`
         select extensions.st_dwithin(
-          extensions.st_point(5.5520, -73.3567)::extensions.geography,
-          extensions.st_point(5.5526, -73.3561)::extensions.geography,
+          extensions.st_point(-73.3567, 5.5520)::extensions.geography,
+          extensions.st_point(-73.3561, 5.5526)::extensions.geography,
           1000
         ) as within
       `);
