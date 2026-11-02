@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SaborU — Marca</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --campus: #F5B800;
+      --antojo: #F26B21;
+      --carbon: #2B2B2B;
+      --cream: #FFF6E5;
+      --verified: #2E9E6B;
+      --verified-soft: #E6F4EC;
+      --verified-ink: #1F7A50;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--cream);
+      color: var(--carbon);
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      line-height: 1.55;
+    }
+    .wrap { width: min(1100px, 92vw); margin: 0 auto; }
+    header { padding: 28px 0 12px; border-bottom: 2px solid var(--carbon); }
+    header img { width: min(360px, 70vw); height: auto; display: block; }
+    .hero { padding: 54px 0 40px; display: grid; gap: 18px; }
+    .kicker { font-size: 14px; font-weight: 600; letter-spacing: .02em; color: var(--antojo); }
+    h1 { font-family: Poppins, sans-serif; font-weight: 800; font-size: clamp(42px, 7vw, 82px); line-height: .98; margin: 0; max-width: 12ch; }
+    .lead { font-size: clamp(17px, 2vw, 20px); max-width: 62ch; margin: 0; }
+    .band { background: var(--campus); padding: 34px 0; }
+    .grid { display: grid; gap: 18px; }
+    .logos { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); align-items: end; }
+    .logo-card { background: var(--cream); border: 2px solid var(--carbon); padding: 18px; display: grid; gap: 10px; justify-items: center; }
+    .logo-card img { width: 100%; max-width: 180px; height: auto; }
+    .logo-card small { font-size: 12px; }
+    section { padding: 40px 0; }
+    h2 { font-family: Poppins, sans-serif; font-weight: 600; font-size: clamp(24px, 3vw, 34px); margin: 0 0 18px; }
+    .swatches { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+    .swatch { border: 2px solid var(--carbon); min-height: 120px; padding: 12px; display: flex; flex-direction: column; justify-content: flex-end; font-size: 13px; }
+    .type { display: grid; gap: 10px; }
+    .display { font-family: Poppins, sans-serif; font-weight: 800; font-size: clamp(34px, 5vw, 58px); line-height: 1; }
+    .body { font-size: 17px; max-width: 65ch; }
+    .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .btn { border: 2px solid var(--carbon); padding: 12px 18px; font: 600 15px Inter, sans-serif; cursor: pointer; }
+    .btn-primary { background: var(--antojo); color: var(--carbon); }
+    .btn-secondary { background: var(--cream); color: var(--carbon); }
+    .badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; font: 600 13px Inter, sans-serif; border: 1px solid currentColor; }
+    .badge-verified { background: var(--verified-soft); color: var(--verified-ink); border-color: var(--verified); }
+    .badge-featured { background: var(--campus); color: var(--carbon); border-color: var(--carbon); }
+    .price { font-family: Poppins, sans-serif; font-weight: 600; font-size: 22px; }
+    .chip { border: 1px solid var(--carbon); padding: 7px 12px; font-size: 14px; }
+    .chip-on { background: var(--carbon); color: var(--cream); }
+    footer { padding: 30px 0 50px; border-top: 2px solid var(--carbon); font-size: 13px; }
+    .muted { opacity: .72; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <img src="logo-horizontal.svg" alt="SaborU — Antojo con criterio">
+    </header>
+
+    <div class="hero">
+      <span class="kicker">Identidad visual · MVP</span>
+      <h1>Antojo con criterio.</h1>
+      <p class="lead">Un pin para saber dónde, una U para saber qué y una estrella para saber si vale la pena. La misma idea en la app, el afiche y la placa del establecimiento.</p>
+    </div>
+  </div>
+
+  <div class="band">
+    <div class="wrap">
+      <div class="grid logos">
+        <div class="logo-card"><img src="logo-pin-u.svg" alt="Icono Pin-U"><small>Icono principal</small></div>
+        <div class="logo-card" style="color: var(--carbon)"><img src="logo-pin-u-mono.svg" alt="Icono Pin-U monocromo"><small>Monocromo</small></div>
+        <div class="logo-card"><img src="app-icon.svg" alt="Icono de aplicación"><small>App icon 1024</small></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <section>
+      <h2>Paleta</h2>
+      <div class="grid swatches">
+        <div class="swatch" style="background: var(--campus)"><strong>Amarillo Campus</strong>#F5B800</div>
+        <div class="swatch" style="background: var(--antojo); color: var(--carbon)"><strong>Naranja Antojo</strong>#F26B21</div>
+        <div class="swatch" style="background: var(--carbon); color: var(--cream)"><strong>Carbón</strong>#2B2B2B</div>
+        <div class="swatch" style="background: var(--cream)"><strong>Crema</strong>#FFF6E5</div>
+        <div class="swatch" style="background: var(--verified); color: var(--cream)"><strong>Verde Verificado</strong>#2E9E6B</div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Tipografía</h2>
+      <div class="type">
+        <div class="display">Poppins 800</div>
+        <div class="body">Inter 400 para leer. Poppins 600 para títulos, precios y el nombre. La jerarquía se construye con tamaño, peso y espacio, no con etiquetas en mayúsculas.</div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Componentes</h2>
+      <div class="row" style="margin-bottom: 18px">
+        <button class="btn btn-primary">Calificar</button>
+        <button class="btn btn-secondary">Ver ficha</button>
+        <span class="badge badge-verified">✓ Reseña verificada</span>
+        <span class="badge badge-featured">Destacado</span>
+        <span class="price">$10.000</span>
+      </div>
+      <div class="row">
+        <span class="chip chip-on">Hasta $10.000</span>
+        <span class="chip">Cerca de mi bloque</span>
+        <span class="chip">Abierto ahora</span>
+        <span class="chip">Fritos</span>
+      </div>
+    </section>
+
+    <footer>
+      <p><strong>Regla:</strong> los colores, tipografías y versiones del logo están fijados en <code>docs/05-MARCA-Y-UI.md</code>. No se inventan variantes.</p>
+      <p class="muted">Vista previa de marca. El wordmark usa Poppins; en producción se carga con next/font.</p>
+    </footer>
+  </div>
+</body>
+</html>

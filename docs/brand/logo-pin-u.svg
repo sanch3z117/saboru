@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="pinUTitle pinUDesc">
+  <title id="pinUTitle">SaborU — Pin-U</title>
+  <desc id="pinUDesc">Marcador de ubicación amarillo con una U carbón y una estrella naranja.</desc>
+  <path d="M128 24C82 24 44 62 44 108c0 48 54 92 78 124 2.6 3.4 9.4 3.4 12 0 24-32 78-76 78-124 0-46-38-84-84-84Z" fill="#F5B800" stroke="#2B2B2B" stroke-width="8" stroke-linejoin="round"/>
+  <circle cx="128" cy="106" r="42" fill="#FFF6E5" stroke="#2B2B2B" stroke-width="6"/>
+  <path d="M110 90v20c0 12 8 20 18 20s18-8 18-20V90" fill="none" stroke="#2B2B2B" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="m128 88 3.5 8.4 9.1.8-6.9 6 2.1 8.9-7.8-4.7-7.8 4.7 2.1-8.9-6.9-6 9.1-.8Z" fill="#F26B21" stroke="#F26B21" stroke-width="3" stroke-linejoin="round"/>
+</svg>
