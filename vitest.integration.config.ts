@@ -11,6 +11,9 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/integration/**/*.test.ts"],
+    // La prueba de concurrencia de reseñas usa datos comprometidos; los
+    // archivos deben correr en serie para no contaminar otros fixtures.
+    fileParallelism: false,
     testTimeout: 30_000,
     hookTimeout: 30_000,
   },

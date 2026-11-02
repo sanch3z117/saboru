@@ -96,6 +96,29 @@ export async function insertEstablishment(
   return id;
 }
 
+export async function insertProduct(
+  client: Client,
+  establishmentId: string,
+  options: { name?: string; price?: number; available?: boolean } = {},
+) {
+  const id = randomUUID();
+
+  await client.query(
+    `insert into public.products
+       (id, establishment_id, name, price_cop, available)
+     values ($1, $2, $3, $4, $5)`,
+    [
+      id,
+      establishmentId,
+      options.name ?? "Producto de prueba",
+      options.price ?? 9000,
+      options.available ?? true,
+    ],
+  );
+
+  return id;
+}
+
 async function clearAuthContext(client: Client) {
   await client.query("reset role");
   await client.query("select set_config('request.jwt.claims', '', true)");
