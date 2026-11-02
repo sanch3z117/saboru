@@ -3,19 +3,19 @@
 > Regla de oro: un paso pequeño a la vez, pruebas después de cada cambio y un commit por paso para poder revertir.
 > Cada paso sigue el protocolo de `AGENTS.md`: plan corto → aprobación → implementación → verificación real → commit.
 
-## Paso 0 — Decisiones abiertas (antes de programar)
+## Paso 0 — Decisiones cerradas (2026-11-02)
 
-Confirmar o fijar por escrito en `docs/`:
+Detalle y justificación en `docs/06-DECISIONES-PASO-0.md`:
 
-- [ ] Dominio institucional exacto (se asume `@uptc.edu.co`).
-- [ ] Plan de Supabase elegido y **PostGIS disponible** en ese plan.
-- [ ] Mínimo de reseñas para mostrar promedios al vendedor (propuesta: 5).
-- [ ] Proveedor de límite de peticiones (propuesta: Upstash, plan gratuito).
-- [ ] Proveedor de teselas del mapa para producción.
-- [ ] Nombre legal y dominio web.
-- [ ] Bloques del campus y coordenadas iniciales (ficticias hasta validar en campo).
+- [x] Dominio institucional exacto: `@uptc.edu.co`.
+- [x] Plan de Supabase: Free, con **PostGIS habilitado en el schema `extensions`**.
+- [x] Mínimo de reseñas: **5** por producto y 5 por establecimiento.
+- [x] Proveedor de rate limit: **Upstash Ratelimit Free**.
+- [x] Teselas del mapa: **MapTiler Free** con atribución y fallback a distancia en texto.
+- [x] Nombre legal y dominio: **SaborU S.A.S.** · `saboru.app` (+ `saboru.com.co` defensivo).
+- [x] Bloques del campus: **6 bloques aproximados**, validar coordenadas en campo.
 
-Sin esto no se empieza la Fase 1.
+La Fase 1 puede empezar por **1.1** (Supabase local + PostGIS en `extensions`).
 
 ## Fases
 

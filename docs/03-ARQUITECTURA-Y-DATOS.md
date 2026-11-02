@@ -12,13 +12,15 @@
 | Autenticación | Supabase Auth | Magic link/OTP y sesiones seguras |
 | Archivos | Supabase Storage | Fotos de establecimientos y productos |
 | PWA / offline | Serwist (`@serwist/next`, `serwist`) + `idb` | Service worker robusto e IndexedDB |
-| Mapas | MapLibre GL + OpenStreetMap | Solo con conexión; proveedor de teselas por confirmar |
+| Mapas | MapLibre GL + MapTiler (teselas) | Solo con conexión; MapTiler Free con atribución y fallback a distancia en texto |
 | Validación | Zod + React Hook Form | Reglas compartidas cliente/servidor |
 | Límite de peticiones | Upstash Ratelimit (plan gratuito) | Rate limiting en Vercel |
 | Pruebas | Vitest + Testing Library + `fake-indexeddb` + Playwright | Unitarias, integración y E2E |
 | Hosting | Vercel + Supabase Cloud | Despliegue simple |
 
 Sin ORM: cliente de Supabase con tipos generados (`supabase gen types`). Fijar versiones exactas en `package.json`.
+
+**PostGIS:** se instala en el schema `extensions`, no en `public`. En migraciones, tipos y RPC usa `extensions.geography`, `extensions.st_point`, `extensions.st_distance` y `extensions.st_dwithin`; las funciones `security definer` con `search_path = ''` deben calificar el schema.
 
 ## Estructura de carpetas
 
@@ -170,7 +172,7 @@ for each row execute function public.handle_new_user();
 |---|---|---|
 | `id` | uuid PK | |
 | `name` | text | Ej. "Bloque A", "Cafetería central" |
-| `location` | geography(Point, 4326) | |
+| `location` | extensions.geography(Point, 4326) | |
 
 ### `establishments`
 
@@ -180,7 +182,7 @@ for each row execute function public.handle_new_user();
 | `owner_id` | uuid null | FK `profiles.id`; se asigna al aceptar la invitación |
 | `name` / `slug` | text | `slug` único, lo crea el admin |
 | `description`, `address` | text | |
-| `location` | geography(Point, 4326) | Índice GIST |
+| `location` | extensions.geography(Point, 4326) | Índice GIST |
 | `schedule` | jsonb | Formato abajo; validado con Zod |
 | `category` | text | |
 | `photos` | text[] | Rutas de Storage |
@@ -380,7 +382,7 @@ Se llaman desde el servidor con rate limit. **No se encolan offline.**
 
 ## RPC del vendedor (únicas lecturas de estadísticas)
 
-Todas verifican que el llamante sea dueño del establecimiento, devuelven agregados y **suprimen resultados con menos de N reseñas** (`public.min_reviews_for_stats()`, por defecto 5; pendiente de confirmar).
+Todas verifican que el llamante sea dueño del establecimiento, devuelven agregados y **suprimen resultados con menos de N reseñas** (`public.min_reviews_for_stats()`, por defecto 5, confirmado en `docs/06-DECISIONES-PASO-0.md`).
 
 ```sql
 create function public.vendor_product_stats(p_establishment_id uuid)
@@ -447,13 +449,13 @@ Regla: ninguna tabla nueva sin `enable row level security` y sus políticas. Nun
 
 ```sql
 select p.*, e.name as establishment_name,
-       st_distance(e.location, b.location) as distance_m
+       extensions.st_distance(e.location, b.location) as distance_m
 from public.products p
 join public.establishments e on e.id = p.establishment_id
 join public.campus_blocks b on b.id = $1
 where e.status = 'active' and p.available
   and p.price_cop <= $2
-  and st_dwithin(e.location, b.location, $3)
+  and extensions.st_dwithin(e.location, b.location, $3)
   and ($4::text is null or p.category = $4)
 order by distance_m asc, p.price_cop asc;
 ```
@@ -518,10 +520,10 @@ UPSTASH_REDIS_REST_TOKEN=
 
 ## Riesgos técnicos
 
-- **PostGIS:** verificar la extensión en el plan de Supabase antes de la Fase 1.
+- **PostGIS:** disponible en el plan Free; se instala en el schema `extensions` (no en `public`). Confirmar en el dashboard antes de 1.1.
 - **Magic link en correos institucionales:** probar entrega y spam; si falla, OTP de 6 dígitos.
 - **Hooks de Auth:** confirmar si el *Before User Created hook* está disponible; si no, usar el trigger.
-- **Teselas del mapa:** el servidor público de OpenStreetMap tiene política de uso limitado; elegir proveedor para producción y mantener la atribución visible.
+- **Teselas del mapa:** MapTiler Free; mantener la atribución visible y caer a distancia en texto si falla o se agota la cuota.
 - **OneDrive:** excluir `node_modules`, `.next` y `.git` de la sincronización.
 - **Datos reales:** el seed es ficticio; nunca correos ni teléfonos reales.
 - **Tamaño del catálogo local:** si crece mucho, paginar el snapshot; revisar con 20 establecimientos y 200 productos.

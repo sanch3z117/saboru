@@ -11,8 +11,9 @@ Documentos de referencia (léelos **solo** el de la fase en la que trabajas, no 
 - `docs/03-ARQUITECTURA-Y-DATOS.md` — stack, modelo de datos, RLS y funciones SQL.
 - `docs/04-OFFLINE-PWA.md` — service worker, snapshot local, cola de envío (outbox) y pruebas offline.
 - `docs/05-MARCA-Y-UI.md` — logo Pin-U, paleta, tipografías, lema, tokens y assets de `docs/brand/`.
+- `docs/06-DECISIONES-PASO-0.md` — decisiones cerradas del Paso 0: dominio, Supabase/PostGIS, reseñas, rate limit, teselas, dominio y bloques.
 
-Si hay conflicto entre documentos, gana este orden: `AGENTS.md` > `03` > `04` > `05` > `02` > `01`. Si algo no está definido, **pregunta; no inventes**.
+Si hay conflicto entre documentos, gana este orden: `AGENTS.md` > `03` > `04` > `05` > `06` > `02` > `01`. Si algo no está definido, **pregunta; no inventes**.
 
 ## Protocolo de trabajo (obligatorio)
 
