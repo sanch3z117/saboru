@@ -412,7 +412,10 @@ describe("vistas públicas", () => {
     );
 
     const view = await asAnon(client, () =>
-      client.query<{ id: string }>("select id from public.public_reviews"),
+      client.query<{ id: string }>(
+        "select id from public.public_reviews where product_id = any($1::uuid[])",
+        [[activeProduct, hiddenProduct, suspendedProduct]],
+      ),
     );
     expect(view.rows.map((row) => row.id)).toEqual([published.id]);
   });

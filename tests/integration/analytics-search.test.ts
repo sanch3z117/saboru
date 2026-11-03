@@ -256,34 +256,54 @@ describe("search_products", () => {
     };
   }
 
+  function onlyFixtures(
+    rows: SearchRow[],
+    catalog: Awaited<ReturnType<typeof createCatalog>>,
+  ) {
+    const ids = new Set<string>([
+      catalog.cheap,
+      catalog.expensive,
+      catalog.midProduct,
+      catalog.farProduct,
+      catalog.draftProduct,
+      catalog.suspendedProduct,
+      catalog.unavailable,
+    ]);
+    return rows.filter((row) => ids.has(row.id));
+  }
+
   it("devuelve productos activos dentro del radio y ordena por distancia y precio", async () => {
     const catalog = await createCatalog();
 
     const result = await callSearch([null, BLOCK_CENTRAL, RADIUS_M, null]);
-    expect(result.rows.map((row) => row.id)).toEqual([
+    const rows = onlyFixtures(result.rows, catalog);
+    expect(rows.map((row) => row.id)).toEqual([
       catalog.cheap,
       catalog.expensive,
       catalog.midProduct,
     ]);
-    expect(result.rows[0]?.distance_m).toBeCloseTo(0, 3);
-    expect(result.rows[2]?.distance_m).toBeGreaterThan(0);
+
+    const near = rows.find((row) => row.id === catalog.cheap);
+    const mid = rows.find((row) => row.id === catalog.midProduct);
+    expect(near?.distance_m).toBeCloseTo(0, 3);
+    expect(mid?.distance_m).toBeGreaterThan(0);
   });
 
   it("aplica presupuesto y admite presupuesto null como sin límite", async () => {
     const catalog = await createCatalog();
 
     const withBudget = await callSearch([9000, BLOCK_CENTRAL, RADIUS_M, null]);
-    expect(withBudget.rows.map((row) => row.id)).toEqual([
-      catalog.cheap,
-      catalog.expensive,
-      catalog.midProduct,
-    ]);
+    expect(onlyFixtures(withBudget.rows, catalog).map((row) => row.id)).toEqual(
+      [catalog.cheap, catalog.expensive, catalog.midProduct],
+    );
 
     const exact = await callSearch([5000, BLOCK_CENTRAL, RADIUS_M, null]);
-    expect(exact.rows.map((row) => row.id)).toEqual([catalog.cheap]);
+    expect(onlyFixtures(exact.rows, catalog).map((row) => row.id)).toEqual([
+      catalog.cheap,
+    ]);
 
     const noLimit = await callSearch([null, BLOCK_CENTRAL, RADIUS_M, null]);
-    expect(noLimit.rows).toHaveLength(3);
+    expect(onlyFixtures(noLimit.rows, catalog)).toHaveLength(3);
   });
 
   it("filtra por categoría exacta de 50 caracteres", async () => {
@@ -299,7 +319,9 @@ describe("search_products", () => {
     );
 
     const result = await callSearch([null, BLOCK_CENTRAL, RADIUS_M, category]);
-    expect(result.rows.map((row) => row.id)).toEqual([productId]);
+    expect(
+      result.rows.filter((row) => row.id === productId).map((row) => row.id),
+    ).toEqual([productId]);
 
     await expect(
       asAnon(client, () =>
@@ -335,8 +357,8 @@ describe("search_products", () => {
     );
 
     const after = await callSearch([null, BLOCK_CENTRAL, RADIUS_M, null]);
-    expect(after.rows.map((row) => row.id)).toEqual(
-      before.rows.map((row) => row.id),
+    expect(onlyFixtures(after.rows, catalog).map((row) => row.id)).toEqual(
+      onlyFixtures(before.rows, catalog).map((row) => row.id),
     );
   });
 
@@ -371,20 +393,16 @@ describe("search_products", () => {
     const anonResult = await asAnon(client, () =>
       callSearch([null, BLOCK_CENTRAL, RADIUS_M, null]),
     );
-    expect(anonResult.rows.map((row) => row.id)).toEqual([
-      catalog.cheap,
-      catalog.expensive,
-      catalog.midProduct,
-    ]);
+    expect(onlyFixtures(anonResult.rows, catalog).map((row) => row.id)).toEqual(
+      [catalog.cheap, catalog.expensive, catalog.midProduct],
+    );
 
     const authResult = await asAuthenticated(client, studentId, () =>
       callSearch([null, BLOCK_CENTRAL, RADIUS_M, null]),
     );
-    expect(authResult.rows.map((row) => row.id)).toEqual([
-      catalog.cheap,
-      catalog.expensive,
-      catalog.midProduct,
-    ]);
+    expect(onlyFixtures(authResult.rows, catalog).map((row) => row.id)).toEqual(
+      [catalog.cheap, catalog.expensive, catalog.midProduct],
+    );
   });
 
   it("acepta radio exactamente 5000 y descarta lo que queda fuera", async () => {

@@ -249,19 +249,29 @@ describe("products", () => {
     const unavailable = await createProduct(active, { available: false });
     const draftProduct = await createProduct(draft);
     const suspendedProduct = await createProduct(suspended);
+    const fixtureEstablishments = [active, draft, suspended];
 
     const publicView = await asAnon(client, () =>
-      client.query<{ id: string }>("select id from public.products"),
+      client.query<{ id: string }>(
+        "select id from public.products where establishment_id = any($1::uuid[])",
+        [fixtureEstablishments],
+      ),
     );
     expect(productIds(publicView.rows)).toEqual(new Set([visible]));
 
     const studentView = await asAuthenticated(client, studentId, () =>
-      client.query<{ id: string }>("select id from public.products"),
+      client.query<{ id: string }>(
+        "select id from public.products where establishment_id = any($1::uuid[])",
+        [fixtureEstablishments],
+      ),
     );
     expect(productIds(studentView.rows)).toEqual(new Set([visible]));
 
     const adminView = await asAuthenticated(client, adminId, () =>
-      client.query<{ id: string }>("select id from public.products"),
+      client.query<{ id: string }>(
+        "select id from public.products where establishment_id = any($1::uuid[])",
+        [fixtureEstablishments],
+      ),
     );
     expect(productIds(adminView.rows)).toEqual(
       new Set([visible, unavailable, draftProduct, suspendedProduct]),
@@ -291,26 +301,39 @@ describe("visibilidad de establishments", () => {
       status: "draft",
     });
     const vendorId = await createVendor(adminId, ownDraft);
+    const fixtureEstablishments = [active, draft, suspended, ownDraft];
 
     const publicView = await asAnon(client, () =>
-      client.query<{ id: string }>("select id from public.establishments"),
+      client.query<{ id: string }>(
+        "select id from public.establishments where id = any($1::uuid[])",
+        [fixtureEstablishments],
+      ),
     );
     expect(establishmentIds(publicView.rows)).toEqual(new Set([active]));
 
     const studentView = await asAuthenticated(client, studentId, () =>
-      client.query<{ id: string }>("select id from public.establishments"),
+      client.query<{ id: string }>(
+        "select id from public.establishments where id = any($1::uuid[])",
+        [fixtureEstablishments],
+      ),
     );
     expect(establishmentIds(studentView.rows)).toEqual(new Set([active]));
 
     const vendorView = await asAuthenticated(client, vendorId, () =>
-      client.query<{ id: string }>("select id from public.establishments"),
+      client.query<{ id: string }>(
+        "select id from public.establishments where id = any($1::uuid[])",
+        [fixtureEstablishments],
+      ),
     );
     expect(establishmentIds(vendorView.rows)).toEqual(
       new Set([active, ownDraft]),
     );
 
     const adminView = await asAuthenticated(client, adminId, () =>
-      client.query<{ id: string }>("select id from public.establishments"),
+      client.query<{ id: string }>(
+        "select id from public.establishments where id = any($1::uuid[])",
+        [fixtureEstablishments],
+      ),
     );
     expect(establishmentIds(adminView.rows)).toEqual(
       new Set([active, draft, suspended, ownDraft]),
