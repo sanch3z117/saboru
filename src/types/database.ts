@@ -148,6 +148,13 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "favorites_establishment_id_fkey";
+            columns: ["establishment_id"];
+            isOneToOne: false;
+            referencedRelation: "public_establishments";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "favorites_product_establishment_fkey";
             columns: ["product_id", "establishment_id"];
             isOneToOne: false;
@@ -237,6 +244,13 @@ export type Database = {
             columns: ["establishment_id"];
             isOneToOne: false;
             referencedRelation: "establishments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "products_establishment_id_fkey";
+            columns: ["establishment_id"];
+            isOneToOne: false;
+            referencedRelation: "public_establishments";
             referencedColumns: ["id"];
           },
         ];
@@ -414,6 +428,13 @@ export type Database = {
             referencedRelation: "campus_blocks";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "search_events_block_id_fkey";
+            columns: ["block_id"];
+            isOneToOne: false;
+            referencedRelation: "public_blocks";
+            referencedColumns: ["id"];
+          },
         ];
       };
       vendor_invites: {
@@ -464,6 +485,13 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "vendor_invites_establishment_id_fkey";
+            columns: ["establishment_id"];
+            isOneToOne: false;
+            referencedRelation: "public_establishments";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "vendor_invites_invited_by_fkey";
             columns: ["invited_by"];
             isOneToOne: false;
@@ -485,6 +513,74 @@ export type Database = {
           review_count: number | null;
         };
         ComputedFields: never;
+        Relationships: [];
+      };
+      public_blocks: {
+        Row: {
+          id: string;
+          latitude: number | null;
+          longitude: number | null;
+          name: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          id?: string | null;
+          latitude?: never;
+          longitude?: never;
+          name?: string | null;
+        };
+        Update: {
+          id?: string | null;
+          latitude?: never;
+          longitude?: never;
+          name?: string | null;
+        };
+        Relationships: [];
+      };
+      public_establishments: {
+        Row: {
+          address: string;
+          category: string;
+          description: string;
+          id: string;
+          latitude: number | null;
+          longitude: number | null;
+          name: string;
+          photos: string[];
+          plan: Database["public"]["Enums"]["establishment_plan"];
+          schedule: NonNullable<Json>;
+          slug: string;
+          status: Database["public"]["Enums"]["establishment_status"];
+        };
+        ComputedFields: never;
+        Insert: {
+          address?: string | null;
+          category?: string | null;
+          description?: string | null;
+          id?: string | null;
+          latitude?: never;
+          longitude?: never;
+          name?: string | null;
+          photos?: string[] | null;
+          plan?: Database["public"]["Enums"]["establishment_plan"] | null;
+          schedule?: Json | null;
+          slug?: string | null;
+          status?: Database["public"]["Enums"]["establishment_status"] | null;
+        };
+        Update: {
+          address?: string | null;
+          category?: string | null;
+          description?: string | null;
+          id?: string | null;
+          latitude?: never;
+          longitude?: never;
+          name?: string | null;
+          photos?: string[] | null;
+          plan?: Database["public"]["Enums"]["establishment_plan"] | null;
+          schedule?: Json | null;
+          slug?: string | null;
+          status?: Database["public"]["Enums"]["establishment_status"] | null;
+        };
         Relationships: [];
       };
       public_reviews: {
@@ -574,6 +670,8 @@ export type Database = {
           distance_m: number;
           establishment_id: string;
           establishment_name: string;
+          establishment_schedule: Json;
+          establishment_slug: string;
           id: string;
           name: string;
           photo_url: string;

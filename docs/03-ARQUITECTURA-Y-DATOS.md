@@ -471,12 +471,14 @@ order by distance_m asc, p.price_cop asc;
 
 - El **plan nunca entra en el `order by`**. Lo patrocinado se muestra en una sección aparte marcada "Destacado".
 - `search_products` es `stable security definer` con `search_path = ''`: `p_budget` null significa "sin límite" (no cero filas), `p_block_id` es obligatorio, `0 < p_radius_m <= 5000` y `p_category` null o de máximo 50 caracteres.
+- El bloque por defecto de la UI es **"Bloque Central"**; si no existe en la base, se usa el primero por nombre.
 - Hora siempre en `America/Bogota`, calculada en el servidor (online) o con el reloj del dispositivo ajustado a esa zona (offline; solo para mostrar, nunca para reglas de negocio).
 - Prueba obligatoria: la función pura y el RPC dan el mismo resultado con los mismos datos.
 
 ## Snapshot y sincronización
 
 - `GET /api/catalog/snapshot`: devuelve solo datos públicos (establecimientos activos, productos disponibles, bloques, `product_stats`, reseñas publicadas recientes sin `user_id`) con `version` y `generated_at`. Sin cookies ni datos privados; cacheable.
+- Usa las vistas `public_establishments` y `public_blocks` (sin `owner_id`, con latitud/longitud), `product_stats` y `public_reviews`, y responde con `Cache-Control` público.
 - `POST /api/sync`: recibe un lote (máx. 20) de operaciones `{ client_id, type: 'review' | 'favorite' | 'report', payload }`. Requiere sesión, valida con Zod, aplica rate limit y llama a los **mismos servicios** que las server actions. Responde por operación: `ok`, `duplicate` (mismo `client_id`, se trata como éxito) o `rejected` con código (`review_cooldown`, `product_unavailable`, `invalid`, `forbidden`). Las rechazadas no se reintentan.
 - La hora y el estado los decide el servidor.
 

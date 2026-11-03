@@ -31,6 +31,8 @@ type SearchRow = {
   price_cop: number;
   category: string;
   establishment_id: string;
+  establishment_slug: string;
+  establishment_schedule: Record<string, unknown>;
   distance_m: number;
 };
 
@@ -106,35 +108,46 @@ describe("acceso directo a la analítica", () => {
 });
 
 describe("log_search", () => {
+  async function countSearchEvents() {
+    const result = await client.query<CountRow>(
+      "select count(*)::int as count from public.search_events",
+    );
+    return result.rows[0]?.count ?? 0;
+  }
+
   it("registra búsquedas como anon con valores nulos", async () => {
+    const before = await countSearchEvents();
+
     await asAnon(client, () => callLogSearch([null, null, null]));
 
     const rows = await client.query<EventRow>(
-      "select budget, block_id, category from public.search_events",
+      "select budget, block_id, category from public.search_events order by created_at desc limit 1",
     );
-    expect(rows.rows).toHaveLength(1);
     expect(rows.rows[0]).toEqual({
       budget: null,
       block_id: null,
       category: null,
     });
+    expect(await countSearchEvents()).toBe(before + 1);
   });
 
   it("registra una búsqueda como authenticated y normaliza la categoría", async () => {
     const studentId = await createStudent();
+    const before = await countSearchEvents();
 
     await asAuthenticated(client, studentId, () =>
       callLogSearch([10000, BLOCK_CENTRAL, "  fritos  "]),
     );
 
     const rows = await client.query<EventRow>(
-      "select budget, block_id, category from public.search_events",
+      "select budget, block_id, category from public.search_events order by created_at desc limit 1",
     );
     expect(rows.rows[0]).toEqual({
       budget: 10000,
       block_id: BLOCK_CENTRAL,
       category: "fritos",
     });
+    expect(await countSearchEvents()).toBe(before + 1);
   });
 
   it("rechaza presupuesto inválido, bloque inexistente y categoría larga", async () => {
@@ -178,7 +191,8 @@ describe("log_product_view", () => {
     );
 
     const rows = await client.query<{ product_id: string }>(
-      "select product_id from public.product_views",
+      "select product_id from public.product_views where product_id = any($1::uuid[])",
+      [[available, unavailable, draftProduct]],
     );
     expect(rows.rows.map((row) => row.product_id)).toEqual([available]);
   });
@@ -287,6 +301,8 @@ describe("search_products", () => {
     const mid = rows.find((row) => row.id === catalog.midProduct);
     expect(near?.distance_m).toBeCloseTo(0, 3);
     expect(mid?.distance_m).toBeGreaterThan(0);
+    expect(near?.establishment_slug).toContain("local-");
+    expect(near?.establishment_schedule).toBeTypeOf("object");
   });
 
   it("aplica presupuesto y admite presupuesto null como sin límite", async () => {
@@ -408,6 +424,9 @@ describe("search_products", () => {
   it("acepta radio exactamente 5000 y descarta lo que queda fuera", async () => {
     const catalog = await createCatalog();
 
+    const before = await client.query<CountRow>(
+      "select count(*)::int as count from public.search_events",
+    );
     const result = await callSearch([null, BLOCK_CENTRAL, 5000, null]);
     const ids = new Set(result.rows.map((row) => row.id));
 
@@ -415,9 +434,9 @@ describe("search_products", () => {
     expect(ids.has(catalog.midProduct)).toBe(true);
     expect(ids.has(catalog.farProduct)).toBe(false);
 
-    const count = await client.query<CountRow>(
+    const after = await client.query<CountRow>(
       "select count(*)::int as count from public.search_events",
     );
-    expect(count.rows[0]?.count).toBe(0);
+    expect(after.rows[0]?.count).toBe(before.rows[0]?.count);
   });
 });

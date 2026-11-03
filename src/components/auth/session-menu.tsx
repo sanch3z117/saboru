@@ -12,8 +12,8 @@ export function SessionMenu() {
 
   useEffect(() => {
     const supabase = createClient();
-    void supabase.auth.getUser().then(({ data }) => {
-      setEmail(data.user?.email ?? null);
+    void supabase.auth.getSession().then(({ data }) => {
+      setEmail(data.session?.user.email ?? null);
     });
   }, []);
 
