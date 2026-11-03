@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { RetryButton } from "@/components/offline/retry-button";
+import { OfflineFavoriteButton } from "@/components/offline/offline-favorite-button";
 import { OfflineReportForm } from "@/components/offline/offline-report-form";
 import { OfflineReviewForm } from "@/components/offline/offline-review-form";
 import { formatSchedule, type WeeklySchedule } from "@/lib/catalog/schedule";
@@ -466,6 +467,14 @@ function OfflineDetail({
           <p className="mt-3 text-sm text-carbon/70">
             Alérgenos: {item.allergens.join(", ")}
           </p>
+        ) : null}
+
+        {canParticipate && sessionUserId ? (
+          <OfflineFavoriteButton
+            userId={sessionUserId}
+            establishmentId={item.establishment_id}
+            productId={item.id}
+          />
         ) : null}
 
         <section aria-labelledby="off-horario" className="mt-8">

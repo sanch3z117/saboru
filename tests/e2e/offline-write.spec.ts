@@ -185,7 +185,7 @@ async function openOfflineProduct(page: Page) {
 }
 
 test.describe("escritura offline", () => {
-  test("reseña pendiente, rechazo por 30 días y reporte", async ({
+  test("reseña pendiente, rechazo por 30 días, reporte y favorito", async ({
     page,
     context,
   }) => {
@@ -225,6 +225,9 @@ test.describe("escritura offline", () => {
       await expect(
         page.getByRole("heading", { name: "Escribe tu reseña" }),
       ).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: "Guardar", exact: true }),
+      ).toBeVisible();
 
       for (const criterion of [
         "rating_sabor",
@@ -256,6 +259,9 @@ test.describe("escritura offline", () => {
       await expect(
         page.locator('section[aria-labelledby="off-escribir"]'),
       ).toContainText("Pendiente de envío.");
+
+      await page.getByRole("button", { name: "Guardar", exact: true }).click();
+      await expect(page.getByText("Guardado. Pendiente de envío.")).toBeVisible();
 
       const foreignReview = page
         .getByRole("listitem")
@@ -289,6 +295,20 @@ test.describe("escritura offline", () => {
           () =>
             withDb(async (client) => {
               const result = await client.query<{ count: string }>(
+                "select count(*)::text as count from public.favorites where user_id = $1",
+                [userId],
+              );
+              return Number(result.rows[0]?.count ?? 0);
+            }),
+          { timeout: 25_000 },
+        )
+        .toBe(1);
+
+      await expect
+        .poll(
+          () =>
+            withDb(async (client) => {
+              const result = await client.query<{ count: string }>(
                 "select count(*)::text as count from public.review_reports where reporter_id = $1",
                 [userId],
               );
@@ -305,6 +325,25 @@ test.describe("escritura offline", () => {
       await expect(page.locator('[aria-live="polite"]')).toContainText(
         "30 días",
       );
+
+      // Quitar el favorito desde el modo offline (acción remove).
+      await openOfflineProduct(page);
+      await page
+        .getByRole("button", { name: "Quitar de guardados" })
+        .click();
+      await expect
+        .poll(
+          () =>
+            withDb(async (client) => {
+              const result = await client.query<{ count: string }>(
+                "select count(*)::text as count from public.favorites where user_id = $1",
+                [userId],
+              );
+              return Number(result.rows[0]?.count ?? 0);
+            }),
+          { timeout: 25_000 },
+        )
+        .toBe(0);
 
       await page.goto(`/producto/${PRODUCT_ID}`);
       await expect(
