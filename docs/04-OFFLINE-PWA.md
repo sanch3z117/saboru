@@ -34,21 +34,32 @@ El service worker (`src/app/sw.ts`) solo maneja red y caché. **No contiene lóg
 
 | Recurso | Estrategia |
 |---|---|
-| Estáticos con hash (`/_next/static/*`) | Cache-first (precache) |
-| Navegación a páginas públicas (`/`, `/buscar`, `/establecimiento/*`, `/producto/*`) | Network-first con tiempo de espera corto (≈3 s) y respaldo a caché; si no hay nada, `/offline` |
-| `GET /api/catalog/snapshot` | Network-first; la página lo guarda en IndexedDB |
-| Fotos (Supabase Storage público) | Stale-while-revalidate, máx. ≈60 entradas y 30 días; imagen de reemplazo si falla |
-| Fuentes e iconos | Cache-first |
+| Estáticos con hash (`/_next/static/*`), app shell, iconos y `/offline` | Precache del manifest |
+| Fotos e imágenes públicas | Cache-first, máx. ≈60 entradas y 30 días; imagen de reemplazo si falla |
+| Navegaciones a cualquier ruta de la app y peticiones RSC | Network-only (sin caché) |
+| `GET /api/catalog/snapshot` | Network-only; la página lo guarda en IndexedDB |
+| Cualquier petición a Supabase (Auth, REST, RPC, Storage) | Network-only |
+
+Las páginas de la app devuelven contenido distinto según la sesión (por ejemplo la
+reseña propia o el formulario de `/producto/*`), así que **no se cachean** ni su HTML
+ni su payload RSC: un payload viejo dejaría la UI mostrando datos que ya cambiaron.
+El respaldo `/offline` se sirve solo cuando una navegación falla por falta de red.
+El offline real (snapshot de catálogo, búsqueda, outbox y limpieza al cerrar sesión)
+llega completo en la Fase 6.
 
 ### Nunca se cachea (lista de exclusión, probada)
 
-- Rutas `/panel`, `/admin`, `/login`, `/registro`, `/auth`.
+- Navegaciones HTML y peticiones RSC de todas las rutas (`/`, `/buscar`, `/producto/*`,
+  `/establecimiento/*`, `/panel/*`, `/admin/*`, `/auth/*`, `/login`, `/registro*`,
+  `/offline`).
 - `/api/sync` y cualquier método distinto de `GET`.
 - Peticiones a Supabase Auth, REST, RPC o Storage privado.
 - Respuestas con `Set-Cookie`, con `Authorization` o con `Cache-Control: private/no-store`.
 - Respuestas no `ok` (4xx/5xx) y respuestas opacas.
 
-Si una ruta pública devuelve HTML distinto según la sesión, usar `Vary`/`no-store` o no cachearla; el HTML cacheado **no debe contener datos del usuario**. Los datos del usuario se cargan en el cliente tras hidratar.
+El HTML cacheado **no debe contener datos del usuario**. Mientras el offline completo
+no exista (Fase 6), ninguna página se cachea; solo se precargan estáticos y se sirve
+`/offline` como respaldo de navegación.
 
 ## Snapshot local del catálogo
 
