@@ -6,6 +6,7 @@ test.describe("service worker y punto de entrada offline", () => {
     context,
   }) => {
     test.slow();
+    await page.route("**/api/catalog/snapshot", (route) => route.abort());
     await page.goto("/");
     await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
     await page.reload();
@@ -61,14 +62,38 @@ test.describe("service worker y punto de entrada offline", () => {
     expect(stale).toEqual([]);
     expect(stored.some((entry) => entry.includes("pages-rsc"))).toBe(false);
 
+    // Sin snapshot: aunque la ruta se hubiera guardado, la vaciamos.
+    await page.evaluate(async () => {
+      const request = indexedDB.open("saboru-offline", 1);
+      request.onupgradeneeded = () => {
+        if (!request.result.objectStoreNames.contains("snapshot")) {
+          request.result.createObjectStore("snapshot", { keyPath: "id" });
+        }
+      };
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction("snapshot", "readwrite");
+        tx.objectStore("snapshot").clear();
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+      db.close();
+    });
+
     await context.setOffline(true);
     await page.goto("/buscar").catch(() => undefined);
 
     await expect(
-      page.getByRole("heading", { name: "No hay conexión" }),
+      page.getByRole("heading", { name: "Sin conexión" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: /Reintentar|Volver a intentar/ }),
+      page.getByText("Vuelve a conectarte para descargar el catálogo."),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /Reintentar/ }),
     ).toBeVisible();
   });
 });

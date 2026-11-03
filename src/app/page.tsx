@@ -1,6 +1,7 @@
 import { EstablishmentCard } from "@/components/catalog/establishment-card";
 import { SearchForm } from "@/components/catalog/search-form";
 import { SiteHeader } from "@/components/layout/site-header";
+import { SnapshotRefresher } from "@/components/offline/snapshot-refresher";
 import {
   getBlocks,
   getCategories,
@@ -19,6 +20,7 @@ export default async function HomePage() {
   return (
     <div className="flex min-h-dvh flex-col">
       <SiteHeader />
+      <SnapshotRefresher />
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-12 sm:px-8 sm:py-16">
         <h1 className="max-w-[18ch] font-display text-[clamp(2.25rem,7vw,4.25rem)] leading-[1.05] font-extrabold tracking-[-0.02em] text-balance text-carbon">

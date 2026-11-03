@@ -9,13 +9,13 @@ Tras la primera visita con conexión, el estudiante puede abrir la app instalada
 
 ## Capas
 
-| Capa | Dónde vive | Qué guarda |
-|---|---|---|
-| App shell y estáticos | Cache Storage (service worker) | JS, CSS, fuentes, iconos, imagen de reemplazo, página `/offline` |
-| Catálogo público | IndexedDB (`snapshot`) | Establecimientos, productos, bloques, estadísticas y reseñas recientes **públicas** |
-| Fotos | Cache Storage (con límite) | Solo las ya vistas |
-| Cola de envío | IndexedDB (`outbox`) | Reseñas, favoritos y reportes pendientes, **asociados al `user_id`** |
-| Favoritos locales | IndexedDB (`favorites`) | Copia de los del usuario, asociada a su `user_id` |
+| Capa                  | Dónde vive                     | Qué guarda                                                                          |
+| --------------------- | ------------------------------ | ----------------------------------------------------------------------------------- |
+| App shell y estáticos | Cache Storage (service worker) | JS, CSS, fuentes, iconos, imagen de reemplazo, página `/offline`                    |
+| Catálogo público      | IndexedDB (`snapshot`)         | Establecimientos, productos, bloques, estadísticas y reseñas recientes **públicas** |
+| Fotos                 | Cache Storage (con límite)     | Solo las ya vistas                                                                  |
+| Cola de envío         | IndexedDB (`outbox`)           | Reseñas, favoritos y reportes pendientes, **asociados al `user_id`**                |
+| Favoritos locales     | IndexedDB (`favorites`)        | Copia de los del usuario, asociada a su `user_id`                                   |
 
 El service worker (`src/app/sw.ts`) solo maneja red y caché. **No contiene lógica de negocio ni claves.** La búsqueda corre en la página con la función pura `src/lib/catalog/search.ts`.
 
@@ -46,13 +46,13 @@ El service worker (`src/app/sw.ts`) solo maneja red y caché. **No contiene lóg
 
 ### Estrategias por tipo de recurso
 
-| Recurso | Estrategia |
-|---|---|
-| Estáticos con hash (`/_next/static/*`), app shell, iconos y `/offline` | Precache del manifest |
-| Fotos e imágenes públicas | Cache-first, máx. ≈60 entradas y 30 días; imagen de reemplazo si falla |
-| Navegaciones a cualquier ruta de la app y peticiones RSC | Network-only (sin caché) |
-| `GET /api/catalog/snapshot` | Network-only; la página lo guarda en IndexedDB |
-| Cualquier petición a Supabase (Auth, REST, RPC, Storage) | Network-only |
+| Recurso                                                                | Estrategia                                                             |
+| ---------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Estáticos con hash (`/_next/static/*`), app shell, iconos y `/offline` | Precache del manifest                                                  |
+| Fotos e imágenes públicas                                              | Cache-first, máx. ≈60 entradas y 30 días; imagen de reemplazo si falla |
+| Navegaciones a cualquier ruta de la app y peticiones RSC               | Network-only (sin caché)                                               |
+| `GET /api/catalog/snapshot`                                            | Network-only; la página lo guarda en IndexedDB                         |
+| Cualquier petición a Supabase (Auth, REST, RPC, Storage)               | Network-only                                                           |
 
 Las páginas de la app devuelven contenido distinto según la sesión (por ejemplo la
 reseña propia o el formulario de `/producto/*`), así que **no se cachean** ni su HTML
@@ -78,17 +78,29 @@ aplica esa decisión; no hay otra copia de las reglas.
 Solo se cachean las imágenes públicas (fotos ya vistas) y el precache del app
 shell. El HTML cacheado **no debe contener datos del usuario**.
 
-### Punto de entrada offline (6.1)
+### Punto de entrada offline
 
-`/offline` es el shell público precacheado (sin datos de sesión): cualquier
-navegación que falle se sirve desde ahí. Es la decisión de 6.1 mientras no existe
-el snapshot local; en 6.2 se amplía para leer el snapshot y permitir buscar sin
-conexión. Queda prohibido dejar `NetworkOnly` sin el fallback `/offline`.
+`/offline` es el shell público precacheado (sin datos de sesión) y la app de
+búsqueda sin conexión: carga el snapshot de IndexedDB, filtra con
+`snapshotToSearchItems` + `searchCatalog` (presupuesto, bloque, categoría y
+“abierto ahora”) y muestra la ficha en el mismo panel. No navega a `/producto/*`
+ni `/establecimiento/*` (son NetworkOnly) y no muestra datos de sesión.
+Sin snapshot muestra “Vuelve a conectarte para descargar el catálogo.”; si el
+registro está corrupto o la cuota lo impide, se explica y se ofrece reintentar.
+Queda prohibido dejar `NetworkOnly` sin el fallback `/offline`.
 
 ## Snapshot local del catálogo
 
 - Se descarga de `GET /api/catalog/snapshot` en la primera visita y se refresca en segundo plano al abrir la app con conexión (si cambió `version`).
-- Se guarda en IndexedDB (`src/lib/offline/db.ts`, store `snapshot`) con `generated_at` y se muestra "Catálogo actualizado el …" cuando se está offline.
+- Se guarda en IndexedDB (`src/lib/offline/db.ts`, store `snapshot`) como
+  `{ id: "catalog", snapshot, savedAt }` con `version` y `generated_at`; la UI
+  muestra “Catálogo actualizado el …” (America/Bogota) cuando usa el snapshot.
+- El refresco (`src/lib/offline/snapshot-store.ts`) corre al montar `/`, `/buscar`
+  y `/offline`, al volver `online` y al volver a la pestaña. No reescribe si la
+  `version` es la misma.
+- Nunca lanza ni reintenta en bucle: error de red, HTTP no-OK, JSON inválido o
+  `QuotaExceededError` devuelven un resultado y **se conserva el snapshot
+  anterior**. Si la cuota impide guardar, se avisa y la app sigue en línea.
 - Contiene solo datos públicos; sin `user_id`, sin correos.
 - Si el almacenamiento falla (cuota), la app sigue funcionando en línea y avisa con un mensaje claro.
 - Tamaño de referencia: 20 establecimientos y 200 productos deben quedar muy por debajo de 5 MB.
@@ -118,15 +130,15 @@ Registro en IndexedDB:
 
 ```ts
 type OutboxItem = {
-  clientId: string            // uuid v4 generado al crear; idempotencia
-  userId: string              // dueño de la operación
-  type: 'review' | 'favorite' | 'report'
-  payload: unknown            // validado con Zod antes de guardar
-  status: 'pending' | 'sending' | 'rejected'
-  errorCode?: string          // ej. review_cooldown
-  attempts: number
-  createdAt: number           // solo informativo; el servidor decide la hora real
-}
+  clientId: string; // uuid v4 generado al crear; idempotencia
+  userId: string; // dueño de la operación
+  type: "review" | "favorite" | "report";
+  payload: unknown; // validado con Zod antes de guardar
+  status: "pending" | "sending" | "rejected";
+  errorCode?: string; // ej. review_cooldown
+  attempts: number;
+  createdAt: number; // solo informativo; el servidor decide la hora real
+};
 ```
 
 Flujo:
@@ -191,6 +203,7 @@ Un segundo usuario en el mismo dispositivo nunca ve ni envía la cola del primer
 
 - Búsqueda pura: presupuesto, distancia, categoría, abierto ahora (incluye cruce de medianoche y día cerrado).
 - Snapshot: `snapshotToSearchItems` (join con establecimiento, `distance_m` por haversine, `establishment_schedule`, descarte de agotados/huérfanos).
+- Store del snapshot: guardar/leer, no reescribir con la misma `version`, registro corrupto, error de red, HTTP no-OK, JSON inválido y `QuotaExceededError` sin perder el snapshot anterior.
 - Outbox: encolar, reintentar, `duplicate`, `rejected` sin reintento, `sending` huérfano, aislamiento por `userId`.
 - Limpieza al cerrar sesión: outbox y favoritos vacíos, snapshot conservado, cachés privadas borradas, idempotencia.
 - Reglas de la lista de exclusión del service worker (función pura que decide si una petición es cacheable).
@@ -207,7 +220,7 @@ Usar `context.setOffline(true)`; el service worker debe estar permitido en la co
 La suite corre con `workers: 1`: comparte service worker e IndexedDB y en paralelo
 es inestable en máquinas lentas.
 
-1. **Lectura offline:** visita con red → se corta la red → recarga → buscar por presupuesto → abrir una ficha completa.
+1. **Lectura offline:** visita con red → se corta la red → recarga → buscar por presupuesto → abrir una ficha completa. Se prueba `/offline` sin snapshot (“Vuelve a conectarte para descargar el catálogo.”) y con snapshot (app de búsqueda y ficha en el panel).
 2. **Escritura offline:** sin red, escribir una reseña → "Pendiente de envío" → volver la red → se publica y aparece "Reseña verificada".
 3. **Privacidad:** cerrar sesión desde el menú y desde `/admin` (server action) → IndexedDB y cachés sin datos privados, snapshot conservado; `/panel` sin red muestra "Requiere conexión".
 4. **Regla de 30 días offline:** dos reseñas offline del mismo producto → la segunda queda `rejected` con mensaje claro.

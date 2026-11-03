@@ -6,6 +6,7 @@ import { Pagination } from "@/components/catalog/pagination";
 import { ProductRow } from "@/components/catalog/product-row";
 import { SearchForm } from "@/components/catalog/search-form";
 import { SiteHeader } from "@/components/layout/site-header";
+import { SnapshotRefresher } from "@/components/offline/snapshot-refresher";
 import { paginate, searchCatalog } from "@/lib/catalog/search";
 import {
   getBlocks,
@@ -107,6 +108,7 @@ export default async function SearchPage({
   return (
     <div className="flex min-h-dvh flex-col">
       <SiteHeader />
+      <SnapshotRefresher />
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-10 sm:px-8">
         <Link

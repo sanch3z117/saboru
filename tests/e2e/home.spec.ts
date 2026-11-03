@@ -17,9 +17,10 @@ test("la página sin conexión se puede abrir directamente", async ({ page }) =>
 
   expect(response?.status()).toBe(200);
   await expect(
-    page.getByRole("heading", { level: 1, name: /no hay conexión/i }),
+    page.getByRole("heading", {
+      name: /Catálogo sin conexión|Sin conexión/,
+    }),
   ).toBeVisible();
-  await expect(page.getByRole("button", { name: /reintentar/i })).toBeVisible();
 });
 
 test("expone el manifest y el service worker", async ({ request }) => {
