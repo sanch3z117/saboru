@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { createClient } from "@/lib/supabase/browser";
+import {
+  cleanupLocalUserData,
+  confirmPendingOutbox,
+} from "@/lib/offline/cleanup";
 
 export function SessionMenu() {
   const router = useRouter();
@@ -37,8 +41,12 @@ export function SessionMenu() {
       type="button"
       className="text-sm font-semibold text-carbon underline underline-offset-4"
       onClick={async () => {
+        if (!(await confirmPendingOutbox())) {
+          return;
+        }
         const supabase = createClient();
         await supabase.auth.signOut();
+        await cleanupLocalUserData().catch(() => undefined);
         router.push("/login");
         router.refresh();
       }}

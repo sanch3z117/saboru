@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createPublicClient } from "@/lib/supabase/public";
 import type {
   BlockRow,
+  CatalogSnapshot,
   ProductRow,
   ProductStatsRow,
   PublicEstablishment,
@@ -211,7 +212,7 @@ export async function getProductById(id: string) {
   };
 }
 
-export async function getCatalogSnapshot() {
+export async function getCatalogSnapshot(): Promise<CatalogSnapshot> {
   const supabase = createPublicClient();
 
   const blocksResult = await supabase

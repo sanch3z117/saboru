@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { MagicLinkForm } from "@/components/auth/magic-link-form";
+import { SessionCleanup } from "@/components/offline/session-cleanup";
 import { homeForRole, type AppRole } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import { requestLoginMagicLink } from "@/server/actions/auth";
@@ -34,6 +35,7 @@ export default async function LoginPage({
 
   return (
     <div>
+      <SessionCleanup />
       <h1 className="font-display text-3xl font-extrabold tracking-tight text-carbon">
         Entrar
       </h1>

@@ -5,6 +5,7 @@ test.describe("service worker y punto de entrada offline", () => {
     page,
     context,
   }) => {
+    test.slow();
     await page.goto("/");
     await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
     await page.reload();

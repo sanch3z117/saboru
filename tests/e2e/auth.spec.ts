@@ -153,6 +153,99 @@ async function submitMagicLink(
   await expect(page.getByRole("status")).toContainText("Revisa tu correo");
 }
 
+async function seedLocalUserData(page: Page) {
+  await page.evaluate(async () => {
+    const request = indexedDB.open("saboru-offline", 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains("snapshot")) {
+        db.createObjectStore("snapshot", { keyPath: "id" });
+      }
+      if (!db.objectStoreNames.contains("outbox")) {
+        db.createObjectStore("outbox", { keyPath: "clientId" });
+      }
+      if (!db.objectStoreNames.contains("favorites")) {
+        db.createObjectStore("favorites", { keyPath: "id" });
+      }
+    };
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(
+        ["snapshot", "outbox", "favorites"],
+        "readwrite",
+      );
+      tx.objectStore("snapshot").put({
+        id: "catalog",
+        snapshot: {
+          version: "v1",
+          generated_at: "2026-11-03T00:00:00.000Z",
+          blocks: [],
+          establishments: [],
+          products: [],
+          product_stats: [],
+          reviews: [],
+        },
+        savedAt: 1,
+      });
+      tx.objectStore("outbox").put({
+        clientId: "pending-1",
+        userId: "u1",
+        type: "review",
+        payload: {},
+        status: "pending",
+        attempts: 0,
+        createdAt: 1,
+      });
+      tx.objectStore("favorites").put({
+        id: "favorite-1",
+        userId: "u1",
+        establishmentId: "e1",
+        productId: null,
+        createdAt: 1,
+      });
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+
+    const cache = await caches.open("pages");
+    await cache.put("/producto/privado", new Response("privado"));
+  });
+}
+
+async function readLocalUserData(page: Page) {
+  return page.evaluate(async () => {
+    const request = indexedDB.open("saboru-offline", 1);
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+
+    const count = (store: string) =>
+      new Promise<number>((resolve, reject) => {
+        const countRequest = db
+          .transaction(store)
+          .objectStore(store)
+          .count();
+        countRequest.onsuccess = () => resolve(countRequest.result);
+        countRequest.onerror = () => reject(countRequest.error);
+      });
+
+    const result = {
+      outbox: await count("outbox"),
+      favorites: await count("favorites"),
+      snapshot: await count("snapshot"),
+      caches: await caches.keys(),
+    };
+    db.close();
+    return result;
+  });
+}
+
 test.describe("autenticación", () => {
   test("registro institucional, enlace mágico, sesión y cierre", async ({
     page,
@@ -179,8 +272,25 @@ test.describe("autenticación", () => {
       });
       expect(role).toBe("student");
 
+      await seedLocalUserData(page);
+      let dialogMessage = "";
+      page.once("dialog", async (dialog) => {
+        dialogMessage = dialog.message();
+        await dialog.accept();
+      });
+
       await page.getByRole("button", { name: "Salir" }).click();
       await expect(page).toHaveURL(/\/login$/);
+      expect(dialogMessage).toContain("pendiente");
+
+      await expect
+        .poll(async () => (await readLocalUserData(page)).outbox)
+        .toBe(0);
+
+      const local = await readLocalUserData(page);
+      expect(local.favorites).toBe(0);
+      expect(local.snapshot).toBe(1);
+      expect(local.caches).not.toContain("pages");
 
       await page.goto("/panel");
       await expect(page).toHaveURL(/\/login$/);
@@ -380,6 +490,22 @@ test.describe("autenticación", () => {
       await expect(
         page.getByRole("heading", { name: "Administración" }),
       ).toBeVisible();
+
+      // Camino de la server action: limpia y luego llama a signOutAction.
+      await seedLocalUserData(page);
+      page.once("dialog", async (dialog) => {
+        await dialog.accept();
+      });
+      await page.getByRole("button", { name: "Cerrar sesión" }).click();
+      await expect(page).toHaveURL(/\/login$/);
+      await expect
+        .poll(async () => (await readLocalUserData(page)).outbox)
+        .toBe(0);
+
+      const local = await readLocalUserData(page);
+      expect(local.favorites).toBe(0);
+      expect(local.snapshot).toBe(1);
+      expect(local.caches).not.toContain("pages");
     } finally {
       await deleteAuthUsers([adminId].filter(Boolean));
     }

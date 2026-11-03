@@ -23,3 +23,20 @@ export type ProductStatsRow =
 
 export type PublicReviewRow =
   Database["public"]["Views"]["public_reviews"]["Row"];
+
+export type SnapshotBlock = {
+  id: string;
+  name: string;
+  latitude: number | null;
+  longitude: number | null;
+};
+
+export type CatalogSnapshot = {
+  version: string;
+  generated_at: string;
+  blocks: SnapshotBlock[];
+  establishments: PublicEstablishment[];
+  products: ProductRow[];
+  product_stats: ProductStatsRow[];
+  reviews: PublicReviewRow[];
+};

@@ -88,10 +88,25 @@ conexión. Queda prohibido dejar `NetworkOnly` sin el fallback `/offline`.
 ## Snapshot local del catálogo
 
 - Se descarga de `GET /api/catalog/snapshot` en la primera visita y se refresca en segundo plano al abrir la app con conexión (si cambió `version`).
-- Se guarda con `generated_at` y se muestra "Catálogo actualizado el …" cuando se está offline.
+- Se guarda en IndexedDB (`src/lib/offline/db.ts`, store `snapshot`) con `generated_at` y se muestra "Catálogo actualizado el …" cuando se está offline.
 - Contiene solo datos públicos; sin `user_id`, sin correos.
 - Si el almacenamiento falla (cuota), la app sigue funcionando en línea y avisa con un mensaje claro.
 - Tamaño de referencia: 20 establecimientos y 200 productos deben quedar muy por debajo de 5 MB.
+
+### Del snapshot a `CatalogSearchItem`
+
+`src/lib/offline/snapshot.ts` (`snapshotToSearchItems`) convierte el snapshot en
+los mismos ítems que devuelve `search_products`:
+
+- une cada producto disponible con su establecimiento;
+- calcula `distance_m` con haversine (`src/lib/catalog/distance.ts`) desde el
+  bloque elegido, porque offline no hay PostGIS;
+- conserva `establishment_schedule` para el filtro “abierto ahora”;
+- descarta productos agotados o sin establecimiento.
+
+La prueba de paridad (`tests/integration/offline-parity.test.ts`) compara, con
+los mismos datos, los ids y el orden del RPC `search_products` contra
+`snapshotToSearchItems` + `searchCatalog` (presupuesto, categoría y horario).
 
 ## Búsqueda offline
 
@@ -145,6 +160,16 @@ Al cerrar sesión (y cuando cambie el usuario autenticado), `lib/offline/cleanup
 3. Mantiene el snapshot público (no contiene datos personales).
 4. Probado: tras cerrar sesión no queda ningún dato de usuario en IndexedDB ni en Cache Storage, y `/panel` no muestra datos.
 
+Se ejecuta en **los dos caminos** de cierre de sesión:
+
+- menú de sesión del navegador (`SessionMenu`), que llama a `supabase.auth.signOut()`;
+- `SignOutButton`, que limpia y luego invoca la server action `signOutAction`.
+
+Además, `/login` monta `SessionCleanup`: si no hay sesión (por ejemplo tras la
+server action, que redirige), vuelve a limpiar. Es la red de seguridad para
+cualquier cierre o sesión vencida. `cleanupLocalUserData` borra los datos de
+todos los usuarios del dispositivo y es idempotente.
+
 Un segundo usuario en el mismo dispositivo nunca ve ni envía la cola del primero (`userId` en cada registro).
 
 ## Límites y mantenimiento
@@ -165,17 +190,26 @@ Un segundo usuario en el mismo dispositivo nunca ve ni envía la cola del primer
 ### Unitarias (Vitest + `fake-indexeddb`)
 
 - Búsqueda pura: presupuesto, distancia, categoría, abierto ahora (incluye cruce de medianoche y día cerrado).
+- Snapshot: `snapshotToSearchItems` (join con establecimiento, `distance_m` por haversine, `establishment_schedule`, descarte de agotados/huérfanos).
 - Outbox: encolar, reintentar, `duplicate`, `rejected` sin reintento, `sending` huérfano, aislamiento por `userId`.
-- Limpieza al cerrar sesión.
+- Limpieza al cerrar sesión: outbox y favoritos vacíos, snapshot conservado, cachés privadas borradas, idempotencia.
 - Reglas de la lista de exclusión del service worker (función pura que decide si una petición es cacheable).
+
+### Integración (Vitest contra Supabase local)
+
+- Paridad online/offline: con los mismos datos, `search_products` y
+  `snapshotToSearchItems` + `searchCatalog` devuelven los mismos ids en el mismo
+  orden (presupuesto, categoría y horario).
 
 ### E2E (Playwright, sobre `build` + `start`)
 
 Usar `context.setOffline(true)`; el service worker debe estar permitido en la configuración.
+La suite corre con `workers: 1`: comparte service worker e IndexedDB y en paralelo
+es inestable en máquinas lentas.
 
 1. **Lectura offline:** visita con red → se corta la red → recarga → buscar por presupuesto → abrir una ficha completa.
 2. **Escritura offline:** sin red, escribir una reseña → "Pendiente de envío" → volver la red → se publica y aparece "Reseña verificada".
-3. **Privacidad:** cerrar sesión → IndexedDB y cachés sin datos privados; `/panel` sin red muestra "Requiere conexión".
+3. **Privacidad:** cerrar sesión desde el menú y desde `/admin` (server action) → IndexedDB y cachés sin datos privados, snapshot conservado; `/panel` sin red muestra "Requiere conexión".
 4. **Regla de 30 días offline:** dos reseñas offline del mismo producto → la segunda queda `rejected` con mensaje claro.
 5. **Actualización:** con una versión nueva en espera, aparece el aviso y no recarga sola.
 6. **Instalabilidad:** manifest válido y SW activo.
