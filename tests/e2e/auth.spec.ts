@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
 
 import { expect, test, type Page } from "@playwright/test";
 import { Client } from "pg";
@@ -7,6 +8,32 @@ const MAILPIT_URL = process.env.MAILPIT_URL ?? "http://127.0.0.1:54324";
 const DB_URL =
   process.env.SUPABASE_DB_URL ??
   "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
+
+function loadLocalEnv(): Record<string, string> {
+  try {
+    return Object.fromEntries(
+      readFileSync(".env.local", "utf8")
+        .split(/\r?\n/)
+        .filter((line) => line && !line.startsWith("#"))
+        .map((line) => {
+          const index = line.indexOf("=");
+          return [line.slice(0, index), line.slice(index + 1)];
+        }),
+    );
+  } catch {
+    return {};
+  }
+}
+
+const LOCAL_ENV = loadLocalEnv();
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL ??
+  LOCAL_ENV.NEXT_PUBLIC_SUPABASE_URL ??
+  "http://127.0.0.1:54321";
+const SERVICE_ROLE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ??
+  LOCAL_ENV.SUPABASE_SERVICE_ROLE_KEY ??
+  "";
 
 type MailpitMessage = {
   ID: string;
@@ -38,6 +65,29 @@ async function createAuthUser(email: string) {
     ),
   );
   return id;
+}
+
+/**
+ * Crea el usuario por la API de Auth para que GoTrue le asigne identidad;
+ * así `shouldCreateUser: false` del login lo reconoce.
+ */
+async function createConfirmedUserViaApi(email: string) {
+  const response = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
+    method: "POST",
+    headers: {
+      apikey: SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email, email_confirm: true }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`No se pudo crear el usuario: ${await response.text()}`);
+  }
+
+  const data = (await response.json()) as { id: string };
+  return data.id;
 }
 
 async function promoteToAdmin(id: string) {
@@ -133,7 +183,7 @@ test.describe("autenticación", () => {
       await expect(page).toHaveURL(/\/login$/);
 
       await page.goto("/panel");
-      await expect(page).toHaveURL(/\/login\?next=%2Fpanel$/);
+      await expect(page).toHaveURL(/\/login$/);
     } finally {
       const ids = await withDb(async (client) => {
         const result = await client.query<{ id: string }>(
@@ -168,6 +218,36 @@ test.describe("autenticación", () => {
       return result.rows[0]?.count;
     });
     expect(count).toBe(0);
+  });
+
+  test("un usuario existente entra desde /login", async ({
+    page,
+    browserName,
+  }) => {
+    const email = `e2e.login.${browserName}.${randomUUID()}@uptc.edu.co`;
+    let userId = "";
+
+    try {
+      userId = await createConfirmedUserViaApi(email);
+
+      await submitMagicLink(page, "/login", email, "Enviar enlace");
+      const { link } = await getMagicLink(email);
+      await page.goto(link);
+
+      await expect(page).toHaveURL(/\/$/);
+      await expect(page.getByRole("button", { name: "Salir" })).toBeVisible();
+
+      const role = await withDb(async (client) => {
+        const result = await client.query<{ role: string }>(
+          "select role from public.profiles where email = $1",
+          [email],
+        );
+        return result.rows[0]?.role;
+      });
+      expect(role).toBe("student");
+    } finally {
+      await deleteAuthUsers([userId].filter(Boolean));
+    }
   });
 
   test("vendedor con invitación entra al panel", async ({

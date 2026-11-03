@@ -7,7 +7,6 @@ export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? origin;
   const code = searchParams.get("code");
-  const next = searchParams.get("next");
   const authError =
     searchParams.get("error_description") ?? searchParams.get("error");
 
@@ -38,10 +37,7 @@ export async function GET(request: NextRequest) {
         role = (profile?.role as AppRole | undefined) ?? "student";
       }
 
-      const destination =
-        next && next.startsWith("/") ? next : homeForRole(role);
-
-      return NextResponse.redirect(new URL(destination, siteUrl));
+      return NextResponse.redirect(new URL(homeForRole(role), siteUrl));
     }
   }
 
