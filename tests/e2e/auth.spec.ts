@@ -149,6 +149,12 @@ async function submitMagicLink(
 ) {
   await page.goto(path);
   await page.getByLabel("Correo electrónico").fill(email);
+  const consent = page.getByRole("checkbox", {
+    name: /política de privacidad/i,
+  });
+  if ((await consent.count()) > 0) {
+    await consent.check();
+  }
   await page.getByRole("button", { name: button }).click();
   await expect(page.getByRole("status")).toContainText("Revisa tu correo");
 }
@@ -238,10 +244,7 @@ async function readLocalUserData(page: Page) {
 
     const count = (store: string) =>
       new Promise<number>((resolve, reject) => {
-        const countRequest = db
-          .transaction(store)
-          .objectStore(store)
-          .count();
+        const countRequest = db.transaction(store).objectStore(store).count();
         countRequest.onsuccess = () => resolve(countRequest.result);
         countRequest.onerror = () => reject(countRequest.error);
       });
@@ -329,10 +332,40 @@ test.describe("autenticación", () => {
 
     await page.goto("/registro");
     await page.getByLabel("Correo electrónico").fill(email);
+    await page
+      .getByRole("checkbox", { name: /política de privacidad/i })
+      .check();
     await page.getByRole("button", { name: "Crear cuenta" }).click();
 
     await expect(page.locator("p[role='alert']")).toContainText(
       /institucional/i,
+    );
+
+    const count = await withDb(async (client) => {
+      const result = await client.query<{ count: number }>(
+        "select count(*)::int as count from auth.users where email = $1",
+        [email],
+      );
+      return result.rows[0]?.count;
+    });
+    expect(count).toBe(0);
+  });
+
+  test("el registro exige aceptar la política de privacidad", async ({
+    page,
+    browserName,
+  }) => {
+    const email = `e2e.consent.${browserName}.${randomUUID()}@uptc.edu.co`;
+
+    await page.goto("/registro");
+    await page.getByLabel("Correo electrónico").fill(email);
+    await page
+      .locator("form")
+      .evaluate((form) => form.setAttribute("novalidate", ""));
+    await page.getByRole("button", { name: "Crear cuenta" }).click();
+
+    await expect(page.locator("p[role='alert']")).toContainText(
+      /política de privacidad/i,
     );
 
     const count = await withDb(async (client) => {
@@ -474,6 +507,9 @@ test.describe("autenticación", () => {
 
     await page.goto("/registro/vendedor");
     await page.getByLabel("Correo electrónico").fill(email);
+    await page
+      .getByRole("checkbox", { name: /política de privacidad/i })
+      .check();
     await page.getByRole("button", { name: "Aceptar invitación" }).click();
 
     await expect(page.locator("p[role='alert']")).toContainText(/invitación/i);
@@ -503,7 +539,7 @@ test.describe("autenticación", () => {
 
       await expect(page).toHaveURL(/\/admin$/);
       await expect(
-        page.getByRole("heading", { name: "Administración" }),
+        page.getByRole("heading", { name: "Moderación y locales" }),
       ).toBeVisible();
 
       // Cierre desde /admin con el hook cliente: sincroniza, limpia y navega.

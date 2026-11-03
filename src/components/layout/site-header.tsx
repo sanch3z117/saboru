@@ -9,10 +9,16 @@ export function SiteHeader() {
       <Link href="/" aria-label="SaborU, ir al inicio" className="w-fit">
         <SaboruLogo className="h-11 w-auto sm:h-12" />
       </Link>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 sm:gap-4">
         <span className="hidden text-sm font-medium text-carbon/70 sm:inline">
           UPTC · Tunja
         </span>
+        <Link
+          href="/privacidad"
+          className="text-sm font-medium text-carbon/70 underline-offset-4 hover:underline"
+        >
+          Privacidad
+        </Link>
         <SessionMenu />
       </div>
     </header>

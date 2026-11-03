@@ -9,14 +9,14 @@ Tras la primera visita con conexión, el estudiante puede abrir la app instalada
 
 ## Capas
 
-| Capa                  | Dónde vive                     | Qué guarda                                                                          |
-| --------------------- | ------------------------------ | ----------------------------------------------------------------------------------- |
-| App shell y estáticos | Cache Storage (service worker) | JS, CSS, fuentes, iconos, imagen de reemplazo, `/offline` y `/requiere-conexion`    |
-| Catálogo público      | IndexedDB (`snapshot`)         | Establecimientos, productos, bloques, estadísticas y reseñas recientes **públicas** |
-| Fotos                 | Cache Storage (con límite)     | Solo las ya vistas                                                                  |
-| Cola de envío         | IndexedDB (`outbox`)           | Reseñas, favoritos y reportes pendientes, **asociados al `user_id`**                |
-| Favoritos locales     | IndexedDB (`favorites`)        | Copia de los del usuario, asociada a su `user_id`                                   |
-| Sesión visible        | `localStorage` (`saboru:viewer`) | `userId`, correo, rol y `canReview` del último usuario; se borra al cerrar sesión |
+| Capa                  | Dónde vive                       | Qué guarda                                                                          |
+| --------------------- | -------------------------------- | ----------------------------------------------------------------------------------- |
+| App shell y estáticos | Cache Storage (service worker)   | JS, CSS, fuentes, iconos, imagen de reemplazo, `/offline` y `/requiere-conexion`    |
+| Catálogo público      | IndexedDB (`snapshot`)           | Establecimientos, productos, bloques, estadísticas y reseñas recientes **públicas** |
+| Fotos                 | Cache Storage (con límite)       | Solo las ya vistas                                                                  |
+| Cola de envío         | IndexedDB (`outbox`)             | Reseñas, favoritos y reportes pendientes, **asociados al `user_id`**                |
+| Favoritos locales     | IndexedDB (`favorites`)          | Copia de los del usuario, asociada a su `user_id`                                   |
+| Sesión visible        | `localStorage` (`saboru:viewer`) | `userId`, correo, rol y `canReview` del último usuario; se borra al cerrar sesión   |
 
 El service worker (`src/app/sw.ts`) solo maneja red y caché. **No contiene lógica de negocio ni claves.** La búsqueda corre en la página con la función pura `src/lib/catalog/search.ts`.
 
@@ -32,15 +32,15 @@ El service worker (`src/app/sw.ts`) solo maneja red y caché. **No contiene lóg
 - **Desactivado en `npm run dev`.** Se prueba con `npm run build && npm run start`.
 - Config: `skipWaiting: false`, `clientsClaim: false`, `navigationPreload: false`
   (el handler de navegación decide red/fallback y evita carreras con la
-  precarga), `fallbacks` a `/offline` y `runtimeCaching` construido a partir de
+  precarga) y `runtimeCaching` construido a partir de
   `src/lib/offline/cache-rules.ts`.
 - Las navegaciones a `/panel*`, `/admin*`, `/login`, `/registro*` y `/auth/*`
-  que fallan por red reciben un HTML inline (`REQUIRES_CONNECTION_HTML`): sin
-  JavaScript, sin sesión y sin datos. El handler añade
-  `x-saboru-fallback: gate` para poder probarlo. No se redirige a `/login` ni se
+  que fallan por red sirven la respuesta precacheada de `/requiere-conexion`:
+  HTML estático, sin JavaScript, sin sesión y sin datos. La respuesta lleva
+  `x-saboru-fallback: gate` para poder probarla. No se redirige a `/login` ni se
   sirve `/offline` en esas rutas.
-- `/requiere-conexion` es la pantalla React equivalente y está precacheada; el
-  service worker no depende de hidratarla para responder a las rutas privadas.
+- `/requiere-conexion` es un route handler estático (`route.ts`), precacheado;
+  no depende de hidratar React para responder a las rutas privadas.
 - Actualización controlada: con `skipWaiting: false` el SW nuevo queda en
   `waiting`; Serwist ya escucha el mensaje `SKIP_WAITING`. El componente
   `src/components/offline/service-worker-update.tsx` muestra el aviso "Hay una
@@ -55,20 +55,20 @@ El service worker (`src/app/sw.ts`) solo maneja red y caché. **No contiene lóg
 
 ### Estrategias por tipo de recurso
 
-| Recurso                                                                              | Estrategia                                                             |
-| ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
-| Estáticos con hash, app shell, iconos, `/offline` y `/requiere-conexion`             | Precache del manifest                                                  |
-| Fotos e imágenes públicas                                                            | Cache-first, máx. ≈60 entradas y 30 días; imagen de reemplazo si falla |
-| Navegaciones a rutas públicas y peticiones RSC                                       | Network-only; si falla la red, precache `/offline`                     |
-| Navegaciones a rutas de cuenta (`/panel*`, `/admin*`, `/login`, `/registro*`, `/auth/*`) | Network-only; si falla la red, gate inline “Requiere conexión”         |
-| `GET /api/catalog/snapshot` y `GET /api/viewer`                                      | Network-only; la página guarda snapshot y viewer en IndexedDB/storage  |
-| Cualquier petición a Supabase (Auth, REST, RPC, Storage)                             | Network-only                                                           |
+| Recurso                                                                                  | Estrategia                                                             |
+| ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Estáticos con hash, app shell, iconos, `/offline` y `/requiere-conexion`                 | Precache del manifest                                                  |
+| Fotos e imágenes públicas                                                                | Cache-first, máx. ≈60 entradas y 30 días; imagen de reemplazo si falla |
+| Navegaciones a rutas públicas y peticiones RSC                                           | Network-only; si falla la red, precache `/offline`                     |
+| Navegaciones a rutas de cuenta (`/panel*`, `/admin*`, `/login`, `/registro*`, `/auth/*`) | Network-only; si falla la red, `/requiere-conexion` precacheada        |
+| `GET /api/catalog/snapshot` y `GET /api/viewer`                                          | Network-only; la página guarda snapshot y viewer en IndexedDB/storage  |
+| Cualquier petición a Supabase (Auth, REST, RPC, Storage)                                 | Network-only                                                           |
 
 Las páginas de la app devuelven contenido distinto según la sesión (por ejemplo la
 reseña propia o el formulario de `/producto/*`), así que **no se cachean** ni su HTML
 ni su payload RSC: un payload viejo dejaría la UI mostrando datos que ya cambiaron.
 El respaldo `/offline` se sirve solo cuando falla una navegación pública; las rutas
-de cuenta reciben el gate inline sin sesión. El offline completo (snapshot,
+de cuenta reciben el documento precacheado “Requiere conexión” sin sesión. El offline completo (snapshot,
 búsqueda, outbox, gate y limpieza al cerrar sesión) está implementado en la Fase 6.
 
 ### Nunca se cachea (lista de exclusión, probada)
@@ -103,17 +103,19 @@ Queda prohibido dejar `NetworkOnly` sin el fallback `/offline`.
 
 `isRequiresConnectionPath` (`src/lib/offline/cache-rules.ts`) reconoce `/panel`,
 `/admin`, `/login`, `/registro` y `/auth` con sus subrutas. Sin red, el service
-worker responde `REQUIRES_CONNECTION_HTML` en lugar de `/offline`: un documento
-estático con el texto “Requiere conexión”, enlace al catálogo offline y **sin**
-JavaScript, cookies, correo, rol ni botones de sesión. La respuesta lleva
-`Cache-Control: no-store` y `x-saboru-fallback: gate` (solo para pruebas).
+worker sirve la respuesta precacheada de `/requiere-conexion` en lugar de
+`/offline`: un documento estático con el texto “Requiere conexión”, enlace al
+catálogo offline y **sin** JavaScript, cookies, correo, rol ni botones de sesión.
+La respuesta lleva `x-saboru-fallback: gate` (solo para pruebas) y
+`Cache-Control: public, max-age=0, must-revalidate` para que el precache la
+guarde.
 
 No se redirige a `/login` (offline no se puede autenticar y el destino se
 perdería). `OfflineCatalog` repite la comprobación con
 `window.location.pathname` como red de seguridad si el cuerpo de `/offline`
-llegara a servirse en una URL privada. `/requiere-conexion` es la pantalla React
-equivalente, precacheada y disponible como entrada directa; el service worker no
-depende de hidratarla para responder a las rutas privadas.
+llegara a servirse en una URL privada. `/requiere-conexion` es un route handler
+estático, precacheado y disponible como entrada directa; el service worker no
+depende de hidratar React.
 
 ## Snapshot local del catálogo
 
@@ -197,7 +199,7 @@ Implementación (`src/lib/offline/outbox.ts`, `src/lib/offline/sync.ts`,
   local vive en el store `favorites` por `userId`.
 - Las acciones solo se ofrecen si hay sesión y el usuario es estudiante: se usa
   el rol/`canReview` cacheado en `localStorage` (`saboru:viewer`). `GET
-  /api/viewer` (NetworkOnly) lo refresca al montar, al volver `online` y al
+/api/viewer` (NetworkOnly) lo refresca al montar, al volver `online` y al
   volver a la pestaña (`ViewerRefresher`); si no hay sesión, borra la caché. Si
   no hay caché, se usa el dominio `@uptc.edu.co`. Vendedor y admin no ven el
   formulario; el servidor sigue validando con `is_institutional_student()`.
@@ -285,12 +287,12 @@ es inestable en máquinas lentas.
 
 1. **Lectura offline** — `offline-catalog.spec.ts`, `offline-shell.spec.ts`, `home.spec.ts`: visita con red → se corta la red → recarga → buscar por presupuesto → abrir una ficha completa. Se prueba `/offline` sin snapshot (“Vuelve a conectarte para descargar el catálogo.”), con snapshot, y la navegación pública que cae en `/offline`.
 2. **Escritura offline** — `offline-write.spec.ts`: sin red, escribir una reseña → "Pendiente de envío" → volver la red → se publica y aparece "Reseña verificada"; reportar una reseña y guardar/quitar un favorito offline. Se comprueba también que admin y vendedor no ven el formulario.
-3. **Privacidad** — `auth.spec.ts`, `offline-gate.spec.ts`: cierre de sesión desde el menú y desde `/admin` con el hook cliente → IndexedDB, `localStorage`/`sessionStorage` y cachés sin datos privados, snapshot conservado, y `/admin` redirige a `/login`. Sin red, `/panel*`, `/admin*`, `/login`, `/registro*` y `/auth/*` reciben el gate “Requiere conexión” sin sesión.
+3. **Privacidad** — `auth.spec.ts`, `offline-gate.spec.ts`: cierre de sesión desde el menú y desde `/admin` con el hook cliente → IndexedDB, `localStorage`/`sessionStorage` y cachés sin datos privados, snapshot conservado, y `/admin` redirige a `/login`. Sin red, la respuesta precacheada de `/requiere-conexion` cubre `/panel*`, `/admin*`, `/login`, `/registro*` y `/auth/*`; los prefijos se prueban en unitarias y la respuesta en `offline-gate.spec.ts`.
 4. **Regla de 30 días offline** — `offline-write.spec.ts`: dos reseñas offline del mismo producto → la primera se publica y la segunda queda `rejected` con el mensaje de 30 días.
 5. **Actualización** — `sw-update.spec.ts`: con una versión nueva en espera, aparece el aviso y no recarga sola; solo recarga al pulsar "Actualizar". Usa el SW de prueba `/api/e2e/sw-test`, disponible únicamente con `E2E_SW_TEST=1` (en producción responde 404).
 6. **Instalabilidad** — `home.spec.ts`: manifest válido (nombre, `standalone`, `start_url`, iconos) y `/sw.js` servido como JavaScript; el SW activo se comprueba en las pruebas offline.
 
-La suite completa se ejecutó en Chromium y en el perfil móvil (Pixel 7). El gate de rutas privadas se repitió con `--repeat-each=5` para descartar carreras con el service worker.
+La suite completa se ejecutó en Chromium y en el perfil móvil (Pixel 7). La respuesta precacheada del gate se repitió con `--repeat-each=5` para descartar carreras con el service worker.
 
 Verificación manual: queda pendiente en dispositivos físicos. En este entorno no hay Android ni iPhone disponibles, así que no se pudo comprobar la instalación real, el uso sin datos en modo avión ni el comportamiento de Safari iOS; debe hacerse antes de desplegar.
 

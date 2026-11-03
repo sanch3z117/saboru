@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
@@ -10,6 +11,7 @@ type MagicLinkFormProps = {
   action: (state: AuthFormState, formData: FormData) => Promise<AuthFormState>;
   submitLabel: string;
   hint?: string;
+  requireConsent?: boolean;
 };
 
 const initialState: AuthFormState = { error: null, sent: false };
@@ -28,6 +30,7 @@ export function MagicLinkForm({
   action,
   submitLabel,
   hint,
+  requireConsent = false,
 }: MagicLinkFormProps) {
   const [state, formAction] = useActionState(action, initialState);
 
@@ -65,6 +68,32 @@ export function MagicLinkForm({
           </p>
         ) : null}
       </div>
+
+      {requireConsent ? (
+        <div className="flex items-start gap-3">
+          <input
+            id="consent"
+            name="consent"
+            type="checkbox"
+            required
+            className="mt-1 size-4 shrink-0 accent-carbon"
+          />
+          <label
+            htmlFor="consent"
+            className="text-sm leading-relaxed text-carbon/80"
+          >
+            Acepto la{" "}
+            <Link
+              href="/privacidad"
+              className="font-semibold text-carbon underline underline-offset-4"
+            >
+              política de privacidad
+            </Link>{" "}
+            y autorizo el tratamiento de mis datos personales para crear mi
+            cuenta (Ley 1581 de 2012).
+          </label>
+        </div>
+      ) : null}
 
       {state.error ? (
         <p

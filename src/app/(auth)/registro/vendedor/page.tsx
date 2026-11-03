@@ -23,6 +23,7 @@ export default function VendorRegisterPage() {
         action={requestVendorMagicLink}
         submitLabel="Aceptar invitación"
         hint="El correo debe tener una invitación abierta."
+        requireConsent
       />
 
       <p className="mt-8 text-sm text-carbon/80">

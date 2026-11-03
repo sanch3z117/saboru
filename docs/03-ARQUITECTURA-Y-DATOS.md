@@ -4,19 +4,19 @@
 
 ## Stack
 
-| Capa | Tecnología | Motivo |
-|---|---|---|
-| Frontend | Next.js 15 (App Router) + React 19 + TypeScript estricto | Un código para móvil y escritorio, SSR y server actions |
-| Estilos | Tailwind CSS + shadcn/ui | Rapidez y accesibilidad |
-| Base de datos | Supabase (Postgres 15) + PostGIS | Relacional, cercanía geográfica, RLS |
-| Autenticación | Supabase Auth | Magic link/OTP y sesiones seguras |
-| Archivos | Supabase Storage | Fotos de establecimientos y productos |
-| PWA / offline | Serwist (`@serwist/next`, `serwist`) + `idb` | Service worker robusto e IndexedDB |
-| Mapas | MapLibre GL + MapTiler (teselas) | Solo con conexión; MapTiler Free con atribución y fallback a distancia en texto |
-| Validación | Zod + React Hook Form | Reglas compartidas cliente/servidor |
-| Límite de peticiones | Upstash Ratelimit (plan gratuito) | Rate limiting en Vercel |
-| Pruebas | Vitest + Testing Library + `fake-indexeddb` + Playwright | Unitarias, integración y E2E |
-| Hosting | Vercel + Supabase Cloud | Despliegue simple |
+| Capa                 | Tecnología                                               | Motivo                                                                          |
+| -------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Frontend             | Next.js 15 (App Router) + React 19 + TypeScript estricto | Un código para móvil y escritorio, SSR y server actions                         |
+| Estilos              | Tailwind CSS + shadcn/ui                                 | Rapidez y accesibilidad                                                         |
+| Base de datos        | Supabase (Postgres 15) + PostGIS                         | Relacional, cercanía geográfica, RLS                                            |
+| Autenticación        | Supabase Auth                                            | Magic link/OTP y sesiones seguras                                               |
+| Archivos             | Supabase Storage                                         | Fotos de establecimientos y productos                                           |
+| PWA / offline        | Serwist (`@serwist/next`, `serwist`) + `idb`             | Service worker robusto e IndexedDB                                              |
+| Mapas                | MapLibre GL + MapTiler (teselas)                         | Solo con conexión; MapTiler Free con atribución y fallback a distancia en texto |
+| Validación           | Zod + React Hook Form                                    | Reglas compartidas cliente/servidor                                             |
+| Límite de peticiones | Upstash Ratelimit (plan gratuito)                        | Rate limiting en Vercel                                                         |
+| Pruebas              | Vitest + Testing Library + `fake-indexeddb` + Playwright | Unitarias, integración y E2E                                                    |
+| Hosting              | Vercel + Supabase Cloud                                  | Despliegue simple                                                               |
 
 Sin ORM: cliente de Supabase con tipos generados (`supabase gen types`). Fijar versiones exactas en `package.json`.
 
@@ -77,13 +77,13 @@ saboru/
 
 ### `profiles`
 
-| Campo | Tipo | Notas |
-|---|---|---|
-| `id` | uuid PK | FK `auth.users.id` on delete cascade |
-| `role` | enum `student \| vendor \| admin` | Lo fija el trigger; no editable por el usuario |
-| `full_name` | text | Único campo editable por el usuario |
-| `email` | text unique | Copia informativa en minúsculas; **no** es fuente de verdad |
-| `created_at` | timestamptz | |
+| Campo        | Tipo                              | Notas                                                       |
+| ------------ | --------------------------------- | ----------------------------------------------------------- |
+| `id`         | uuid PK                           | FK `auth.users.id` on delete cascade                        |
+| `role`       | enum `student \| vendor \| admin` | Lo fija el trigger; no editable por el usuario              |
+| `full_name`  | text                              | Único campo editable por el usuario                         |
+| `email`      | text unique                       | Copia informativa en minúsculas; **no** es fuente de verdad |
+| `created_at` | timestamptz                       |                                                             |
 
 ```sql
 alter table public.profiles enable row level security;
@@ -101,15 +101,15 @@ Sin `INSERT` ni `DELETE` para clientes: el perfil lo crea el trigger.
 
 ### `vendor_invites`
 
-| Campo | Tipo | Notas |
-|---|---|---|
-| `id` | uuid PK | |
-| `email` | text | Se compara en minúsculas |
-| `establishment_id` | uuid | NOT NULL; FK a `establishments.id` (desde 1.3) |
-| `invited_by` | uuid | FK `profiles.id` (admin) |
-| `expires_at` | timestamptz | Por defecto 7 días |
-| `accepted_at` / `accepted_by` | timestamptz / uuid | Nulos hasta aceptar |
-| `created_at` | timestamptz | |
+| Campo                         | Tipo               | Notas                                          |
+| ----------------------------- | ------------------ | ---------------------------------------------- |
+| `id`                          | uuid PK            |                                                |
+| `email`                       | text               | Se compara en minúsculas                       |
+| `establishment_id`            | uuid               | NOT NULL; FK a `establishments.id` (desde 1.3) |
+| `invited_by`                  | uuid               | FK `profiles.id` (admin)                       |
+| `expires_at`                  | timestamptz        | Por defecto 7 días                             |
+| `accepted_at` / `accepted_by` | timestamptz / uuid | Nulos hasta aceptar                            |
+| `created_at`                  | timestamptz        |                                                |
 
 RLS: solo admin (`is_admin()`) para SELECT/INSERT/UPDATE. Un vendedor no la ve.
 
@@ -167,33 +167,33 @@ for each row execute function public.handle_new_user();
 ```
 
 - Si el trigger lanza error, el registro se revierte: no queda cuenta ni perfil.
-- Alternativa más limpia: un *Before User Created hook* de Supabase Auth con la misma lógica. Verificar en la documentación vigente cuál está disponible en el plan.
+- Alternativa más limpia: un _Before User Created hook_ de Supabase Auth con la misma lógica. Verificar en la documentación vigente cuál está disponible en el plan.
 - **Cambio de correo:** desactivar el cambio de email en Auth o aplicar la misma regla; `is_institutional_student()` lee `auth.users` en cada llamada, por lo que un cambio a un dominio ajeno bloquea las reseñas.
 - **Admin:** se asigna manualmente en la base (`update profiles set role='admin'` con `service_role` o SQL editor). No hay registro público de admin.
 
 ### `campus_blocks`
 
-| Campo | Tipo | Notas |
-|---|---|---|
-| `id` | uuid PK | |
-| `name` | text | Ej. "Bloque A", "Cafetería central" |
-| `location` | extensions.geography(Point, 4326) | |
+| Campo      | Tipo                              | Notas                               |
+| ---------- | --------------------------------- | ----------------------------------- |
+| `id`       | uuid PK                           |                                     |
+| `name`     | text                              | Ej. "Bloque A", "Cafetería central" |
+| `location` | extensions.geography(Point, 4326) |                                     |
 
 ### `establishments`
 
-| Campo | Tipo | Notas |
-|---|---|---|
-| `id` | uuid PK | |
-| `owner_id` | uuid null | FK `profiles.id`; se asigna al aceptar la invitación |
-| `name` / `slug` | text | `slug` único, lo crea el admin |
-| `description`, `address` | text | |
-| `location` | extensions.geography(Point, 4326) | Índice GIST |
-| `schedule` | jsonb | Formato abajo; validado con Zod |
-| `category` | text | |
-| `photos` | text[] | Rutas de Storage |
-| `status` | enum `draft \| pending \| active \| suspended` | Solo admin |
-| `plan` | enum `basic \| featured \| pro` | Solo admin |
-| `created_at` / `updated_at` | timestamptz | |
+| Campo                       | Tipo                                           | Notas                                                |
+| --------------------------- | ---------------------------------------------- | ---------------------------------------------------- |
+| `id`                        | uuid PK                                        |                                                      |
+| `owner_id`                  | uuid null                                      | FK `profiles.id`; se asigna al aceptar la invitación |
+| `name` / `slug`             | text                                           | `slug` único, lo crea el admin                       |
+| `description`, `address`    | text                                           |                                                      |
+| `location`                  | extensions.geography(Point, 4326)              | Índice GIST                                          |
+| `schedule`                  | jsonb                                          | Formato abajo; validado con Zod                      |
+| `category`                  | text                                           |                                                      |
+| `photos`                    | text[]                                         | Rutas de Storage                                     |
+| `status`                    | enum `draft \| pending \| active \| suspended` | Solo admin                                           |
+| `plan`                      | enum `basic \| featured \| pro`                | Solo admin                                           |
+| `created_at` / `updated_at` | timestamptz                                    |                                                      |
 
 Permisos de columna para el vendedor (dueño):
 
@@ -208,9 +208,13 @@ grant update (name, description, address, location, schedule, category, photos)
 
 ```json
 {
-  "mon": [["07:00", "17:00"]], "tue": [["07:00", "17:00"]],
-  "wed": [["07:00", "17:00"]], "thu": [["07:00", "17:00"]],
-  "fri": [["07:00", "16:00"]], "sat": [], "sun": []
+  "mon": [["07:00", "17:00"]],
+  "tue": [["07:00", "17:00"]],
+  "wed": [["07:00", "17:00"]],
+  "thu": [["07:00", "17:00"]],
+  "fri": [["07:00", "16:00"]],
+  "sat": [],
+  "sun": []
 }
 ```
 
@@ -218,32 +222,32 @@ Hora local `America/Bogota`. Un cierre menor que la apertura (ej. `["18:00","02:
 
 ### `products`
 
-| Campo | Tipo | Notas |
-|---|---|---|
-| `id` | uuid PK | |
-| `establishment_id` | uuid | FK |
-| `name`, `description` | text | |
-| `price_cop` | integer | `check (price_cop > 0)` |
-| `category` | text | |
-| `photo_url` | text | |
-| `available` | boolean | |
-| `allergens` | text[] | |
-| `created_at` / `updated_at` | timestamptz | |
+| Campo                       | Tipo        | Notas                   |
+| --------------------------- | ----------- | ----------------------- |
+| `id`                        | uuid PK     |                         |
+| `establishment_id`          | uuid        | FK                      |
+| `name`, `description`       | text        |                         |
+| `price_cop`                 | integer     | `check (price_cop > 0)` |
+| `category`                  | text        |                         |
+| `photo_url`                 | text        |                         |
+| `available`                 | boolean     |                         |
+| `allergens`                 | text[]      |                         |
+| `created_at` / `updated_at` | timestamptz |                         |
 
 `unique (id, establishment_id)` para la FK compuesta de `reviews`. El vendedor puede `INSERT` (la política verifica que `establishment_id` sea de su propiedad) y `UPDATE` de todas las columnas **menos** `id` y `establishment_id`.
 
 ### `reviews`
 
-| Campo | Tipo | Notas |
-|---|---|---|
-| `id` | uuid PK | |
-| `client_id` | uuid | Identificador de la cola offline; `unique (user_id, client_id)` |
-| `user_id` | uuid | FK `profiles.id` |
-| `product_id`, `establishment_id` | uuid | **FK compuesta** `(product_id, establishment_id)` → `products (id, establishment_id)` |
-| `rating_sabor`, `rating_cantidad`, `rating_precio`, `rating_presentacion`, `rating_calidad_precio` | smallint | `check between 1 and 5` |
-| `comment` | text | Opcional, máx. 500 caracteres |
-| `status` | enum `published \| pending \| hidden` | Lo fija el trigger; solo admin lo cambia |
-| `created_at` | timestamptz | Lo fija el trigger |
+| Campo                                                                                              | Tipo                                  | Notas                                                                                 |
+| -------------------------------------------------------------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------- |
+| `id`                                                                                               | uuid PK                               |                                                                                       |
+| `client_id`                                                                                        | uuid                                  | Identificador de la cola offline; `unique (user_id, client_id)`                       |
+| `user_id`                                                                                          | uuid                                  | FK `profiles.id`                                                                      |
+| `product_id`, `establishment_id`                                                                   | uuid                                  | **FK compuesta** `(product_id, establishment_id)` → `products (id, establishment_id)` |
+| `rating_sabor`, `rating_cantidad`, `rating_precio`, `rating_presentacion`, `rating_calidad_precio` | smallint                              | `check between 1 and 5`                                                               |
+| `comment`                                                                                          | text                                  | Opcional, máx. 500 caracteres                                                         |
+| `status`                                                                                           | enum `published \| pending \| hidden` | Lo fija el trigger; solo admin lo cambia                                              |
+| `created_at`                                                                                       | timestamptz                           | Lo fija el trigger                                                                    |
 
 La FK compuesta impide que una reseña apunte a un producto de otro establecimiento.
 
@@ -334,27 +338,27 @@ Toda reseña publicada muestra la insignia "Reseña verificada" porque el trigge
 
 ### `review_reports`
 
-| Campo | Tipo | Notas |
-|---|---|---|
-| `id` | uuid PK | |
-| `client_id` | uuid | Idempotencia offline |
-| `review_id` | uuid | FK `reviews.id`, `on delete cascade` |
-| `reporter_id` | uuid | FK `profiles.id`, `default auth.uid()`, `on delete cascade` |
-| `reason` | text | Máx. 300 caracteres |
-| `status` | enum `open \| reviewed \| dismissed` | Solo admin lo cambia (RPC) |
-| `created_at` | timestamptz | |
+| Campo         | Tipo                                 | Notas                                                       |
+| ------------- | ------------------------------------ | ----------------------------------------------------------- |
+| `id`          | uuid PK                              |                                                             |
+| `client_id`   | uuid                                 | Idempotencia offline                                        |
+| `review_id`   | uuid                                 | FK `reviews.id`, `on delete cascade`                        |
+| `reporter_id` | uuid                                 | FK `profiles.id`, `default auth.uid()`, `on delete cascade` |
+| `reason`      | text                                 | Máx. 300 caracteres                                         |
+| `status`      | enum `open \| reviewed \| dismissed` | Solo admin lo cambia (RPC)                                  |
+| `created_at`  | timestamptz                          |                                                             |
 
 `unique (review_id, reporter_id)` y `unique (reporter_id, client_id)`. Estudiante: `INSERT` propio (solo `review_id`, `reason`, `client_id`; `reporter_id` se llena con `default auth.uid()`), y `SELECT` propio solo mientras siga siendo estudiante institucional. **El vendedor no ve reportes** (`reporter_id` es dato personal). Admin: lectura de todos; el cambio de `status` va por RPC (1.7). Sin `UPDATE` ni `DELETE` para clientes.
 
 ### `favorites`
 
-| Campo | Tipo | Notas |
-|---|---|---|
-| `id` | uuid PK | |
-| `user_id` | uuid | FK `profiles.id`, `default auth.uid()`, `on delete cascade` |
-| `establishment_id` | uuid | FK `establishments.id`, `on delete cascade` |
-| `product_id` | uuid null | FK compuesta `(product_id, establishment_id)`, `on delete cascade` |
-| `created_at` | timestamptz | |
+| Campo              | Tipo        | Notas                                                              |
+| ------------------ | ----------- | ------------------------------------------------------------------ |
+| `id`               | uuid PK     |                                                                    |
+| `user_id`          | uuid        | FK `profiles.id`, `default auth.uid()`, `on delete cascade`        |
+| `establishment_id` | uuid        | FK `establishments.id`, `on delete cascade`                        |
+| `product_id`       | uuid null   | FK compuesta `(product_id, establishment_id)`, `on delete cascade` |
+| `created_at`       | timestamptz |                                                                    |
 
 ```sql
 create unique index favorites_unique on public.favorites
@@ -427,22 +431,22 @@ Mismo patrón para:
 
 ## RPC de admin (`security definer`, verifican `is_admin()`)
 
-`admin_set_review_status(review_id, status)`, `admin_resolve_report(report_id, status)`, `admin_set_establishment_status(id, status)`, `admin_set_establishment_plan(id, plan)`, `admin_create_vendor_invite(email, establishment_id)`. Cambiar `plan` **no** altera promedios ni orden. La invitación valida email normalizado, local existente y sin dueño, email no registrado y `invite_exists` si ya hay una abierta.
+`admin_set_review_status(review_id, status)`, `admin_resolve_report(report_id, status)`, `admin_set_establishment_status(id, status)`, `admin_set_establishment_plan(id, plan)`, `admin_create_vendor_invite(email, establishment_id)` y `admin_create_establishment(name, slug, description, address, block_id, lat, lng, category, schedule)`. Cambiar `plan` **no** altera promedios ni orden. La invitación valida email normalizado, local existente y sin dueño, email no registrado y `invite_exists` si ya hay una abierta. La creación de local valida nombre, slug único, bloque, coordenadas, categoría y horario; nace en `draft`, `basic` y sin dueño. `admin_create_establishment` es la única vía de alta: el admin no tiene `INSERT` directo sobre `establishments`.
 
 ## Matriz RLS y permisos (resumen)
 
-| Tabla / objeto | Anónimo | Estudiante | Vendedor | Admin |
-|---|---|---|---|---|
-| `establishments` | SELECT si `active` | SELECT activos | SELECT activos y el propio; UPDATE de columnas permitidas del propio | SELECT todo; cambios por RPC |
-| `products` | SELECT si disponible y local activo | igual | CRUD del propio local | SELECT todo |
-| `reviews` (tabla) | — | INSERT propio; UPDATE de rating/comentario propio dentro de 30 días; SELECT propio | **Sin acceso** | SELECT todo; estado por RPC |
-| `public_reviews`, `product_stats` | SELECT | SELECT | SELECT | SELECT |
-| `review_reports` | — | INSERT y SELECT propios | **Sin acceso** | SELECT todo; estado por RPC |
-| `favorites` | — | CRUD propio | — | — |
-| `profiles` | — | SELECT propio; UPDATE solo `full_name` | igual | SELECT todo; rol por SQL manual |
-| `vendor_invites` | — | — | — | Todo vía RPC/RLS admin |
-| `search_events`, `product_views` | — (solo vía RPC de registro) | — | — (solo vía RPC de agregados) | — (solo vía RPC) |
-| `campus_blocks` | SELECT | SELECT | SELECT | Todo |
+| Tabla / objeto                    | Anónimo                             | Estudiante                                                                         | Vendedor                                                             | Admin                           |
+| --------------------------------- | ----------------------------------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------- |
+| `establishments`                  | SELECT si `active`                  | SELECT activos                                                                     | SELECT activos y el propio; UPDATE de columnas permitidas del propio | SELECT todo; cambios por RPC    |
+| `products`                        | SELECT si disponible y local activo | igual                                                                              | CRUD del propio local                                                | SELECT todo                     |
+| `reviews` (tabla)                 | —                                   | INSERT propio; UPDATE de rating/comentario propio dentro de 30 días; SELECT propio | **Sin acceso**                                                       | SELECT todo; estado por RPC     |
+| `public_reviews`, `product_stats` | SELECT                              | SELECT                                                                             | SELECT                                                               | SELECT                          |
+| `review_reports`                  | —                                   | INSERT y SELECT propios                                                            | **Sin acceso**                                                       | SELECT todo; estado por RPC     |
+| `favorites`                       | —                                   | CRUD propio                                                                        | —                                                                    | —                               |
+| `profiles`                        | —                                   | SELECT propio; UPDATE solo `full_name`                                             | igual                                                                | SELECT todo; rol por SQL manual |
+| `vendor_invites`                  | —                                   | —                                                                                  | —                                                                    | Todo vía RPC/RLS admin          |
+| `search_events`, `product_views`  | — (solo vía RPC de registro)        | —                                                                                  | — (solo vía RPC de agregados)                                        | — (solo vía RPC)                |
+| `campus_blocks`                   | SELECT                              | SELECT                                                                             | SELECT                                                               | Todo                            |
 
 Regla: ninguna tabla nueva sin `enable row level security` y sus políticas. Nunca `using (true)` ni `with check (true)`.
 
@@ -530,8 +534,8 @@ UPSTASH_REDIS_REST_TOKEN=
 - Zod en cada server action y route handler. Sin `any`.
 - Rate limit con Upstash, por usuario e IP: reseñas (p. ej. 10/hora), reportes (p. ej. 20/hora), `/api/sync`, registro de vistas y búsquedas. Valores iniciales ajustables.
 - Comentarios de reseñas: texto plano, sin HTML, longitud máxima; moderación por reportes.
-- Cabeceras de seguridad (CSP, `X-Content-Type-Options`, `Referrer-Policy`), HTTPS, cookies `SameSite=Lax` y `Secure`.
-- Sin datos personales en analítica. Política de privacidad y consentimiento visibles (Ley 1581 de 2012).
+- Cabeceras en `next.config.ts`: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` y CSP **report-only** compatible con Next/MapLibre. HSTS solo en producción y sin `preload`. HTTPS y cookies `SameSite=Lax`.
+- Sin datos personales en analítica. `/privacidad` publica la política (Ley 1581 de 2012); el registro exige aceptar el consentimiento de forma explícita y el servidor lo valida.
 - El service worker nunca guarda respuestas autenticadas (regla 13 de `AGENTS.md`).
 - Revisión manual antes de cada despliegue: auth, RLS, permisos por columna, RPC, caché del SW y variables de entorno.
 
@@ -557,7 +561,7 @@ UPSTASH_REDIS_REST_TOKEN=
 - **PostGIS:** disponible en el plan Free; se instala en el schema `extensions` (no en `public`). Confirmar en el dashboard antes de 1.1.
 - **CLI de Supabase:** fijado en `2.122.1` (`v2.stable`). La `3.0.0` falla al inicializar el esquema con la imagen de Postgres 15 (`Invalid package config /app/package.json`); revisar al actualizar la imagen o el CLI.
 - **Magic link en correos institucionales:** probar entrega y spam; si falla, OTP de 6 dígitos.
-- **Hooks de Auth:** confirmar si el *Before User Created hook* está disponible; si no, usar el trigger.
+- **Hooks de Auth:** confirmar si el _Before User Created hook_ está disponible; si no, usar el trigger.
 - **Teselas del mapa:** MapTiler Free; mantener la atribución visible y caer a distancia en texto si falla o se agota la cuota.
 - **OneDrive:** excluir `node_modules`, `.next` y `.git` de la sincronización.
 - **Datos reales:** el seed es ficticio; nunca correos ni teléfonos reales.

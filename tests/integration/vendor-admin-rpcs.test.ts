@@ -173,6 +173,28 @@ describe("acceso a las RPC", () => {
         ),
       ),
     ).rejects.toThrow(/permission denied/);
+
+    await expect(
+      asAnon(client, () =>
+        client.query(
+          `select public.admin_create_establishment(
+             $1::text, $2::text, $3::text, $4::text, $5::uuid,
+             $6::double precision, $7::double precision, $8::text, $9::jsonb
+           )`,
+          [
+            "Local anónimo",
+            `anon-${randomUUID()}`,
+            "",
+            "",
+            BLOCK_CENTRAL,
+            5.552,
+            -73.3567,
+            "almuerzos",
+            JSON.stringify({}),
+          ],
+        ),
+      ),
+    ).rejects.toThrow(/permission denied/);
   });
 
   it("un vendedor no puede ejecutar RPC de admin", async () => {
@@ -219,6 +241,28 @@ describe("acceso a las RPC", () => {
         client.query(
           "select public.admin_create_vendor_invite($1::text, $2::uuid)",
           ["nuevo@example.com", establishmentId],
+        ),
+      ),
+    ).rejects.toThrow(/forbidden/);
+
+    await expect(
+      asAuthenticated(client, vendorId, () =>
+        client.query(
+          `select public.admin_create_establishment(
+             $1::text, $2::text, $3::text, $4::text, $5::uuid,
+             $6::double precision, $7::double precision, $8::text, $9::jsonb
+           )`,
+          [
+            "Local del vendedor",
+            `vendor-${randomUUID()}`,
+            "",
+            "",
+            BLOCK_CENTRAL,
+            5.552,
+            -73.3567,
+            "almuerzos",
+            JSON.stringify({}),
+          ],
         ),
       ),
     ).rejects.toThrow(/forbidden/);
@@ -656,5 +700,182 @@ describe("RPC de admin", () => {
     expect(searchAfter.rows.map((row) => row.id)).toEqual(
       searchBefore.rows.map((row) => row.id),
     );
+  });
+});
+
+describe("admin_create_establishment", () => {
+  it("crea un local en borrador con ubicaci�n, horario y plan b�sico", async () => {
+    const adminId = await createAdmin();
+    const slug = `nuevo-local-${randomUUID()}`;
+    const schedule = { mon: [["08:00", "17:00"]], tue: [] };
+
+    const created = await asAuthenticated(client, adminId, () =>
+      client.query<{ id: string }>(
+        `select public.admin_create_establishment(
+           $1::text, $2::text, $3::text, $4::text, $5::uuid,
+           $6::double precision, $7::double precision, $8::text, $9::jsonb
+         ) as id`,
+        [
+          "Cafeter�a Nueva",
+          slug,
+          "Caf� y panader�a",
+          "Bloque Central",
+          BLOCK_CENTRAL,
+          5.553,
+          -73.357,
+          "caf�",
+          JSON.stringify(schedule),
+        ],
+      ),
+    );
+    const id = created.rows[0]?.id;
+
+    const result = await client.query<{
+      name: string;
+      slug: string;
+      description: string;
+      address: string;
+      category: string;
+      status: string;
+      plan: string;
+      owner_id: string | null;
+      schedule: typeof schedule;
+      lat: number;
+      lng: number;
+    }>(
+      `select name, slug, description, address, category, status, plan,
+              owner_id, schedule,
+              extensions.st_y(location::extensions.geometry) as lat,
+              extensions.st_x(location::extensions.geometry) as lng
+         from public.establishments
+        where id = $1`,
+      [id],
+    );
+
+    const row = result.rows[0];
+    expect(row?.name).toBe("Cafeter�a Nueva");
+    expect(row?.slug).toBe(slug);
+    expect(row?.description).toBe("Caf� y panader�a");
+    expect(row?.address).toBe("Bloque Central");
+    expect(row?.category).toBe("caf�");
+    expect(row?.status).toBe("draft");
+    expect(row?.plan).toBe("basic");
+    expect(row?.owner_id).toBeNull();
+    expect(row?.schedule).toEqual(schedule);
+    expect(row?.lat).toBeCloseTo(5.553);
+    expect(row?.lng).toBeCloseTo(-73.357);
+  });
+
+  it("rechaza slug duplicado, bloque, coordenadas y horario inv�lidos", async () => {
+    const adminId = await createAdmin();
+    const slug = `duplicado-${randomUUID()}`;
+
+    await asAuthenticated(client, adminId, () =>
+      client.query(
+        `select public.admin_create_establishment(
+           $1::text, $2::text, $3::text, $4::text, $5::uuid,
+           $6::double precision, $7::double precision, $8::text, $9::jsonb
+         )`,
+        [
+          "Primero",
+          slug,
+          "",
+          "",
+          BLOCK_CENTRAL,
+          5.552,
+          -73.3567,
+          "almuerzos",
+          JSON.stringify({}),
+        ],
+      ),
+    );
+
+    await expect(
+      asAuthenticated(client, adminId, () =>
+        client.query(
+          `select public.admin_create_establishment(
+             $1::text, $2::text, $3::text, $4::text, $5::uuid,
+             $6::double precision, $7::double precision, $8::text, $9::jsonb
+           )`,
+          [
+            "Segundo",
+            slug,
+            "",
+            "",
+            BLOCK_CENTRAL,
+            5.552,
+            -73.3567,
+            "almuerzos",
+            JSON.stringify({}),
+          ],
+        ),
+      ),
+    ).rejects.toThrow(/slug_exists/);
+
+    await expect(
+      asAuthenticated(client, adminId, () =>
+        client.query(
+          `select public.admin_create_establishment(
+             $1::text, $2::text, $3::text, $4::text, $5::uuid,
+             $6::double precision, $7::double precision, $8::text, $9::jsonb
+           )`,
+          [
+            "Sin bloque",
+            `sin-bloque-${randomUUID()}`,
+            "",
+            "",
+            randomUUID(),
+            5.552,
+            -73.3567,
+            "almuerzos",
+            JSON.stringify({}),
+          ],
+        ),
+      ),
+    ).rejects.toThrow(/invalid_block/);
+
+    await expect(
+      asAuthenticated(client, adminId, () =>
+        client.query(
+          `select public.admin_create_establishment(
+             $1::text, $2::text, $3::text, $4::text, $5::uuid,
+             $6::double precision, $7::double precision, $8::text, $9::jsonb
+           )`,
+          [
+            "Coordenadas",
+            `coordenadas-${randomUUID()}`,
+            "",
+            "",
+            BLOCK_CENTRAL,
+            95,
+            -73.3567,
+            "almuerzos",
+            JSON.stringify({}),
+          ],
+        ),
+      ),
+    ).rejects.toThrow(/invalid_coordinates/);
+
+    await expect(
+      asAuthenticated(client, adminId, () =>
+        client.query(
+          `select public.admin_create_establishment(
+             $1::text, $2::text, $3::text, $4::text, $5::uuid,
+             $6::double precision, $7::double precision, $8::text, $9::jsonb
+           )`,
+          [
+            "Horario",
+            `horario-${randomUUID()}`,
+            "",
+            "",
+            BLOCK_CENTRAL,
+            5.552,
+            -73.3567,
+            "almuerzos",
+            JSON.stringify([]),
+          ],
+        ),
+      ),
+    ).rejects.toThrow(/invalid_schedule/);
   });
 });

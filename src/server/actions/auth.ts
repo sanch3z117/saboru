@@ -29,6 +29,13 @@ export async function requestStudentMagicLink(
   _state: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
+  if (formData.get("consent") !== "on") {
+    return {
+      error: "Debes aceptar la política de privacidad para crear tu cuenta.",
+      sent: false,
+    };
+  }
+
   const parsed = studentEmailSchema.safeParse(formData.get("email"));
   if (!parsed.success) {
     return { error: firstIssue(parsed.error), sent: false };
@@ -54,6 +61,14 @@ export async function requestVendorMagicLink(
   _state: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
+  if (formData.get("consent") !== "on") {
+    return {
+      error:
+        "Debes aceptar la política de privacidad para aceptar la invitación.",
+      sent: false,
+    };
+  }
+
   const parsed = emailSchema.safeParse(formData.get("email"));
   if (!parsed.success) {
     return { error: firstIssue(parsed.error), sent: false };

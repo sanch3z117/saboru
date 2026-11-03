@@ -23,6 +23,7 @@ export default function StudentRegisterPage() {
         action={requestStudentMagicLink}
         submitLabel="Crear cuenta"
         hint="Debe terminar en @uptc.edu.co."
+        requireConsent
       />
 
       <p className="mt-8 text-sm text-carbon/80">
