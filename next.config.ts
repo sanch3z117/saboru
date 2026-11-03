@@ -17,7 +17,10 @@ function getRevision() {
 const withSerwist = withSerwistInit({
   swSrc: "src/app/sw.ts",
   swDest: "public/sw.js",
-  additionalPrecacheEntries: [{ url: "/offline", revision: getRevision() }],
+  additionalPrecacheEntries: [
+    { url: "/offline", revision: getRevision() },
+    { url: "/requiere-conexion", revision: getRevision() },
+  ],
   disable: process.env.NODE_ENV === "development",
 });
 

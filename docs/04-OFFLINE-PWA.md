@@ -11,11 +11,12 @@ Tras la primera visita con conexión, el estudiante puede abrir la app instalada
 
 | Capa                  | Dónde vive                     | Qué guarda                                                                          |
 | --------------------- | ------------------------------ | ----------------------------------------------------------------------------------- |
-| App shell y estáticos | Cache Storage (service worker) | JS, CSS, fuentes, iconos, imagen de reemplazo, página `/offline`                    |
+| App shell y estáticos | Cache Storage (service worker) | JS, CSS, fuentes, iconos, imagen de reemplazo, `/offline` y `/requiere-conexion`    |
 | Catálogo público      | IndexedDB (`snapshot`)         | Establecimientos, productos, bloques, estadísticas y reseñas recientes **públicas** |
 | Fotos                 | Cache Storage (con límite)     | Solo las ya vistas                                                                  |
 | Cola de envío         | IndexedDB (`outbox`)           | Reseñas, favoritos y reportes pendientes, **asociados al `user_id`**                |
 | Favoritos locales     | IndexedDB (`favorites`)        | Copia de los del usuario, asociada a su `user_id`                                   |
+| Sesión visible        | `localStorage` (`saboru:viewer`) | `userId`, correo, rol y `canReview` del último usuario; se borra al cerrar sesión |
 
 El service worker (`src/app/sw.ts`) solo maneja red y caché. **No contiene lógica de negocio ni claves.** La búsqueda corre en la página con la función pura `src/lib/catalog/search.ts`.
 
@@ -26,12 +27,20 @@ El service worker (`src/app/sw.ts`) solo maneja red y caché. **No contiene lóg
 ## Service worker (Serwist)
 
 - Precache del app shell generado en el build (`@serwist/next`), con
-  `precacheOptions: { cleanupOutdatedCaches: true }`; `/offline` entra como
-  entrada adicional (`next.config.ts`).
+  `precacheOptions: { cleanupOutdatedCaches: true }`; `/offline` y
+  `/requiere-conexion` entran como entradas adicionales (`next.config.ts`).
 - **Desactivado en `npm run dev`.** Se prueba con `npm run build && npm run start`.
-- Config: `skipWaiting: false`, `clientsClaim: false`, `navigationPreload: true`,
-  `fallbacks` a `/offline` y `runtimeCaching` construido a partir de
+- Config: `skipWaiting: false`, `clientsClaim: false`, `navigationPreload: false`
+  (el handler de navegación decide red/fallback y evita carreras con la
+  precarga), `fallbacks` a `/offline` y `runtimeCaching` construido a partir de
   `src/lib/offline/cache-rules.ts`.
+- Las navegaciones a `/panel*`, `/admin*`, `/login`, `/registro*` y `/auth/*`
+  que fallan por red reciben un HTML inline (`REQUIRES_CONNECTION_HTML`): sin
+  JavaScript, sin sesión y sin datos. El handler añade
+  `x-saboru-fallback: gate` para poder probarlo. No se redirige a `/login` ni se
+  sirve `/offline` en esas rutas.
+- `/requiere-conexion` es la pantalla React equivalente y está precacheada; el
+  service worker no depende de hidratarla para responder a las rutas privadas.
 - Actualización controlada: con `skipWaiting: false` el SW nuevo queda en
   `waiting`; Serwist ya escucha el mensaje `SKIP_WAITING`. El componente
   `src/components/offline/service-worker-update.tsx` muestra el aviso "Hay una
@@ -46,20 +55,21 @@ El service worker (`src/app/sw.ts`) solo maneja red y caché. **No contiene lóg
 
 ### Estrategias por tipo de recurso
 
-| Recurso                                                                | Estrategia                                                             |
-| ---------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| Estáticos con hash (`/_next/static/*`), app shell, iconos y `/offline` | Precache del manifest                                                  |
-| Fotos e imágenes públicas                                              | Cache-first, máx. ≈60 entradas y 30 días; imagen de reemplazo si falla |
-| Navegaciones a cualquier ruta de la app y peticiones RSC               | Network-only (sin caché)                                               |
-| `GET /api/catalog/snapshot`                                            | Network-only; la página lo guarda en IndexedDB                         |
-| Cualquier petición a Supabase (Auth, REST, RPC, Storage)               | Network-only                                                           |
+| Recurso                                                                              | Estrategia                                                             |
+| ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
+| Estáticos con hash, app shell, iconos, `/offline` y `/requiere-conexion`             | Precache del manifest                                                  |
+| Fotos e imágenes públicas                                                            | Cache-first, máx. ≈60 entradas y 30 días; imagen de reemplazo si falla |
+| Navegaciones a rutas públicas y peticiones RSC                                       | Network-only; si falla la red, precache `/offline`                     |
+| Navegaciones a rutas de cuenta (`/panel*`, `/admin*`, `/login`, `/registro*`, `/auth/*`) | Network-only; si falla la red, gate inline “Requiere conexión”         |
+| `GET /api/catalog/snapshot` y `GET /api/viewer`                                      | Network-only; la página guarda snapshot y viewer en IndexedDB/storage  |
+| Cualquier petición a Supabase (Auth, REST, RPC, Storage)                             | Network-only                                                           |
 
 Las páginas de la app devuelven contenido distinto según la sesión (por ejemplo la
 reseña propia o el formulario de `/producto/*`), así que **no se cachean** ni su HTML
 ni su payload RSC: un payload viejo dejaría la UI mostrando datos que ya cambiaron.
-El respaldo `/offline` se sirve solo cuando una navegación falla por falta de red.
-El offline real (snapshot de catálogo, búsqueda, outbox y limpieza al cerrar sesión)
-llega completo en la Fase 6.
+El respaldo `/offline` se sirve solo cuando falla una navegación pública; las rutas
+de cuenta reciben el gate inline sin sesión. El offline completo (snapshot,
+búsqueda, outbox, gate y limpieza al cerrar sesión) está implementado en la Fase 6.
 
 ### Nunca se cachea (lista de exclusión, probada)
 
@@ -70,7 +80,7 @@ aplica esa decisión; no hay otra copia de las reglas.
 - Navegaciones HTML y peticiones RSC de todas las rutas (`/`, `/buscar`, `/producto/*`,
   `/establecimiento/*`, `/panel/*`, `/admin/*`, `/auth/*`, `/login`, `/registro*`,
   `/offline`).
-- `/api/sync` y cualquier método distinto de `GET`.
+- `/api/sync`, `/api/viewer` y cualquier método distinto de `GET`.
 - Peticiones a Supabase Auth, REST, RPC o Storage privado.
 - Respuestas con `Set-Cookie`, con `Authorization` o con `Cache-Control: private/no-store`.
 - Respuestas no `ok` (4xx/5xx) y respuestas opacas.
@@ -78,7 +88,7 @@ aplica esa decisión; no hay otra copia de las reglas.
 Solo se cachean las imágenes públicas (fotos ya vistas) y el precache del app
 shell. El HTML cacheado **no debe contener datos del usuario**.
 
-### Punto de entrada offline
+### Puntos de entrada offline
 
 `/offline` es el shell público precacheado (sin datos de sesión) y la app de
 búsqueda sin conexión: carga el snapshot de IndexedDB, filtra con
@@ -88,6 +98,22 @@ ni `/establecimiento/*` (son NetworkOnly) y no muestra datos de sesión.
 Sin snapshot muestra “Vuelve a conectarte para descargar el catálogo.”; si el
 registro está corrupto o la cuota lo impide, se explica y se ofrece reintentar.
 Queda prohibido dejar `NetworkOnly` sin el fallback `/offline`.
+
+### Rutas que requieren conexión
+
+`isRequiresConnectionPath` (`src/lib/offline/cache-rules.ts`) reconoce `/panel`,
+`/admin`, `/login`, `/registro` y `/auth` con sus subrutas. Sin red, el service
+worker responde `REQUIRES_CONNECTION_HTML` en lugar de `/offline`: un documento
+estático con el texto “Requiere conexión”, enlace al catálogo offline y **sin**
+JavaScript, cookies, correo, rol ni botones de sesión. La respuesta lleva
+`Cache-Control: no-store` y `x-saboru-fallback: gate` (solo para pruebas).
+
+No se redirige a `/login` (offline no se puede autenticar y el destino se
+perdería). `OfflineCatalog` repite la comprobación con
+`window.location.pathname` como red de seguridad si el cuerpo de `/offline`
+llegara a servirse en una URL privada. `/requiere-conexion` es la pantalla React
+equivalente, precacheada y disponible como entrada directa; el service worker no
+depende de hidratarla para responder a las rutas privadas.
 
 ## Snapshot local del catálogo
 
@@ -170,10 +196,11 @@ Implementación (`src/lib/offline/outbox.ts`, `src/lib/offline/sync.ts`,
   (23505) se trata como `duplicate`; la baja sin filas, como `ok`. La copia
   local vive en el store `favorites` por `userId`.
 - Las acciones solo se ofrecen si hay sesión y el usuario es estudiante: se usa
-  el rol/`canReview` cacheado en `localStorage` (`saboru:viewer`, escrito al
-  visitar una ficha con sesión) y, si no hay caché, el dominio
-  `@uptc.edu.co`. Vendedor y admin no ven el formulario; el servidor sigue
-  validando con `is_institutional_student()`.
+  el rol/`canReview` cacheado en `localStorage` (`saboru:viewer`). `GET
+  /api/viewer` (NetworkOnly) lo refresca al montar, al volver `online` y al
+  volver a la pestaña (`ViewerRefresher`); si no hay sesión, borra la caché. Si
+  no hay caché, se usa el dominio `@uptc.edu.co`. Vendedor y admin no ven el
+  formulario; el servidor sigue validando con `is_institutional_student()`.
 - El servicio de sync no registra `log_search` ni `log_product_view`.
 
 Reglas de negocio (30 días, dominio, estado) se aplican **en el servidor y en la base**, nunca confiando en lo que dice el cliente. Si dos operaciones offline chocan con la regla de 30 días, gana la primera que llegue.
@@ -186,22 +213,31 @@ La sesión de Supabase persiste en cookies; sin red no se puede renovar, pero la
 
 ## Cierre de sesión y privacidad
 
-Al cerrar sesión (y cuando cambie el usuario autenticado), `lib/offline/cleanup.ts`:
+El cierre de sesión ocurre **siempre en cliente** (`useSignOut`, usado por
+`SessionMenu` y `SignOutButton`), nunca en una server action: una server action no
+puede tocar IndexedDB, el service worker ni el storage del navegador. El orden es
+obligatorio:
 
-1. Borra `outbox` y `favorites` locales del usuario (si hay elementos `pending`, **avisar antes** y ofrecer enviarlos si hay red).
-2. Borra cachés que pudieran tener datos privados (`caches.delete` de las privadas).
-3. Mantiene el snapshot público (no contiene datos personales).
-4. Probado: tras cerrar sesión no queda ningún dato de usuario en IndexedDB ni en Cache Storage, y `/panel` no muestra datos.
+1. `prepareLogout(userId)` (`src/lib/offline/logout.ts`): si hay red, intenta
+   `syncOutbox`; si después quedan envíos `pending` o un `sending` huérfano,
+   pide confirmación porque el cleanup los borrará. Si la persona cancela, no se
+   cierra sesión.
+2. `cleanupLocalUserData()` (`src/lib/offline/cleanup.ts`): vacía `outbox` y
+   `favorites`, borra las cachés privadas y recorre `localStorage` y
+   `sessionStorage` eliminando todas las claves `saboru:*` (viewer, avisos de
+   guardado, etc.). Conserva el snapshot público y `public-images`.
+3. `supabase.auth.signOut()`.
+4. `router.push("/login")` y `router.refresh()`.
 
-Se ejecuta en **los dos caminos** de cierre de sesión:
-
-- menú de sesión del navegador (`SessionMenu`), que llama a `supabase.auth.signOut()`;
-- `SignOutButton`, que limpia y luego invoca la server action `signOutAction`.
-
-Además, `/login` monta `SessionCleanup`: si no hay sesión (por ejemplo tras la
-server action, que redirige), vuelve a limpiar. Es la red de seguridad para
-cualquier cierre o sesión vencida. `cleanupLocalUserData` borra los datos de
+Al cambiar de usuario sin cerrar sesión, `SyncProvider` compara
+`saboru:viewer.userId` con la sesión y ejecuta la misma limpieza antes de
+sincronizar. `/login` monta `SessionCleanup`: si no hay sesión (otra pestaña,
+sesión vencida), vuelve a limpiar. `cleanupLocalUserData` borra los datos de
 todos los usuarios del dispositivo y es idempotente.
+
+Probado en E2E: cierre desde el menú y desde `/admin`; después no quedan
+`outbox`, `favorites`, `saboru:*` ni cachés privadas, el snapshot sigue, y
+`/panel`/`/admin` sin sesión redirigen a `/login`.
 
 Un segundo usuario en el mismo dispositivo nunca ve ni envía la cola del primero (`userId` en cada registro).
 
@@ -210,7 +246,10 @@ Un segundo usuario en el mismo dispositivo nunca ve ni envía la cola del primer
 - Fotos: tope de entradas y edad (ver tabla); al exceder se descartan las más antiguas.
 - Solicitar almacenamiento persistente (`navigator.storage.persist()`) solo si es útil y sin molestar al usuario.
 - Control de versión del esquema de IndexedDB con migraciones simples (`idb` `upgrade`).
-- Manejo de `QuotaExceededError` en todas las escrituras.
+- Manejo de `QuotaExceededError` en todas las escrituras. El texto único vive en
+  `src/lib/offline/quota.ts` (`QUOTA_MESSAGE`) y lo usan snapshot, reseñas y
+  favoritos; `SnapshotRefresher` muestra un aviso descartable si el refresco
+  falla por cuota.
 
 ## Particularidades de plataforma
 
@@ -226,8 +265,8 @@ Un segundo usuario en el mismo dispositivo nunca ve ni envía la cola del primer
 - Snapshot: `snapshotToSearchItems` (join con establecimiento, `distance_m` por haversine, `establishment_schedule`, descarte de agotados/huérfanos).
 - Store del snapshot: guardar/leer, no reescribir con la misma `version`, registro corrupto, error de red, HTTP no-OK, JSON inválido y `QuotaExceededError` sin perder el snapshot anterior.
 - Outbox: encolar, validación Zod, `duplicate`, `rejected` sin reintento, `sending` huérfano, aislamiento por `userId`, 401/red/5xx, backoff y favoritos add/remove locales.
-- Limpieza al cerrar sesión: outbox y favoritos vacíos, snapshot conservado, cachés privadas borradas, idempotencia.
-- Reglas de la lista de exclusión del service worker (función pura que decide si una petición es cacheable).
+- Limpieza al cerrar sesión: outbox y favoritos vacíos, snapshot conservado, cachés privadas borradas, claves `saboru:*` de `localStorage`/`sessionStorage` eliminadas, idempotencia.
+- Reglas de la lista de exclusión del service worker y prefijos de rutas que requieren conexión (funciones puras).
 
 ### Integración (Vitest contra Supabase local)
 
@@ -244,14 +283,16 @@ Usar `context.setOffline(true)`; el service worker debe estar permitido en la co
 La suite corre con `workers: 1`: comparte service worker e IndexedDB y en paralelo
 es inestable en máquinas lentas.
 
-1. **Lectura offline:** visita con red → se corta la red → recarga → buscar por presupuesto → abrir una ficha completa. Se prueba `/offline` sin snapshot (“Vuelve a conectarte para descargar el catálogo.”) y con snapshot (app de búsqueda y ficha en el panel).
-2. **Escritura offline:** sin red, escribir una reseña → "Pendiente de envío" → volver la red → se publica y aparece "Reseña verificada"; reportar una reseña y guardar/quitar un favorito offline. Se comprueba también que admin y vendedor no ven el formulario.
-3. **Privacidad:** cerrar sesión desde el menú y desde `/admin` (server action) → IndexedDB y cachés sin datos privados, snapshot conservado; `/panel` sin red muestra "Requiere conexión".
-4. **Regla de 30 días offline:** dos reseñas offline del mismo producto → la primera se publica y la segunda queda `rejected` con el mensaje de 30 días.
-5. **Actualización:** con una versión nueva en espera, aparece el aviso y no recarga sola.
-6. **Instalabilidad:** manifest válido y SW activo.
+1. **Lectura offline** — `offline-catalog.spec.ts`, `offline-shell.spec.ts`, `home.spec.ts`: visita con red → se corta la red → recarga → buscar por presupuesto → abrir una ficha completa. Se prueba `/offline` sin snapshot (“Vuelve a conectarte para descargar el catálogo.”), con snapshot, y la navegación pública que cae en `/offline`.
+2. **Escritura offline** — `offline-write.spec.ts`: sin red, escribir una reseña → "Pendiente de envío" → volver la red → se publica y aparece "Reseña verificada"; reportar una reseña y guardar/quitar un favorito offline. Se comprueba también que admin y vendedor no ven el formulario.
+3. **Privacidad** — `auth.spec.ts`, `offline-gate.spec.ts`: cierre de sesión desde el menú y desde `/admin` con el hook cliente → IndexedDB, `localStorage`/`sessionStorage` y cachés sin datos privados, snapshot conservado, y `/admin` redirige a `/login`. Sin red, `/panel*`, `/admin*`, `/login`, `/registro*` y `/auth/*` reciben el gate “Requiere conexión” sin sesión.
+4. **Regla de 30 días offline** — `offline-write.spec.ts`: dos reseñas offline del mismo producto → la primera se publica y la segunda queda `rejected` con el mensaje de 30 días.
+5. **Actualización** — `sw-update.spec.ts`: con una versión nueva en espera, aparece el aviso y no recarga sola; solo recarga al pulsar "Actualizar". Usa el SW de prueba `/api/e2e/sw-test`, disponible únicamente con `E2E_SW_TEST=1` (en producción responde 404).
+6. **Instalabilidad** — `home.spec.ts`: manifest válido (nombre, `standalone`, `start_url`, iconos) y `/sw.js` servido como JavaScript; el SW activo se comprueba en las pruebas offline.
 
-Verificación manual: Android con Chrome (instalación y uso real sin datos) e iPhone con Safari si es posible.
+La suite completa se ejecutó en Chromium y en el perfil móvil (Pixel 7). El gate de rutas privadas se repitió con `--repeat-each=5` para descartar carreras con el service worker.
+
+Verificación manual: queda pendiente en dispositivos físicos. En este entorno no hay Android ni iPhone disponibles, así que no se pudo comprobar la instalación real, el uso sin datos en modo avión ni el comportamiento de Safari iOS; debe hacerse antes de desplegar.
 
 ## No hacer
 

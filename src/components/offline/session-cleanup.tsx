@@ -6,8 +6,9 @@ import { cleanupLocalUserData } from "@/lib/offline/cleanup";
 import { createClient } from "@/lib/supabase/browser";
 
 /**
- * Red de seguridad: al llegar a /login sin sesión (por ejemplo tras el cierre
- * desde la server action) se borran los datos privados que hayan quedado.
+ * Red de seguridad: al llegar a /login sin sesión (por ejemplo tras cerrar
+ * sesión en otra pestaña o con una sesión vencida) se borran los datos
+ * privados que hayan quedado.
  */
 export function SessionCleanup() {
   useEffect(() => {

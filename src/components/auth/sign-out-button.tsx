@@ -2,14 +2,11 @@
 
 import { useTransition } from "react";
 
+import { useSignOut } from "@/components/auth/use-sign-out";
 import { Button } from "@/components/ui/button";
-import {
-  cleanupLocalUserData,
-  confirmPendingOutbox,
-} from "@/lib/offline/cleanup";
-import { signOutAction } from "@/server/actions/auth";
 
 export function SignOutButton() {
+  const signOut = useSignOut();
   const [pending, startTransition] = useTransition();
 
   return (
@@ -20,11 +17,7 @@ export function SignOutButton() {
       className="mt-8"
       onClick={() => {
         startTransition(async () => {
-          if (!(await confirmPendingOutbox())) {
-            return;
-          }
-          await cleanupLocalUserData().catch(() => undefined);
-          await signOutAction();
+          await signOut();
         });
       }}
     >

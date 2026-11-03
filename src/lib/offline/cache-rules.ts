@@ -63,8 +63,23 @@ export function cacheStrategyFor(input: CacheRuleInput): CacheStrategy {
     return "image";
   }
 
-  // Navegaciones y documentos: red; si falla, Serwist sirve `/offline`.
+  // Navegaciones y documentos: red; si falla, Serwist sirve el fallback.
   return "network-only";
+}
+
+const REQUIRES_CONNECTION_PREFIXES = [
+  "/panel",
+  "/admin",
+  "/login",
+  "/registro",
+  "/auth",
+];
+
+/** Rutas privadas/de cuenta: offline se sirve `/requiere-conexion`. */
+export function isRequiresConnectionPath(pathname: string) {
+  return REQUIRES_CONNECTION_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
 }
 
 const LEGACY_CACHE_PREFIXES = [

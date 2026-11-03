@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   cacheStrategyFor,
+  isRequiresConnectionPath,
   legacyCachesToDelete,
 } from "@/lib/offline/cache-rules";
 
@@ -70,6 +71,27 @@ describe("política de caché del service worker", () => {
     expect(rule("/auth/callback")).toBe("network-only");
     expect(rule("/producto/abc", { method: "POST" })).toBe("network-only");
     expect(rule("/favicon.ico", { method: "HEAD" })).toBe("network-only");
+  });
+});
+
+describe("rutas que requieren conexión", () => {
+  it("marca panel, admin y auth", () => {
+    for (const path of [
+      "/panel",
+      "/panel/productos",
+      "/admin",
+      "/admin/reportes",
+      "/login",
+      "/registro",
+      "/registro/vendedor",
+      "/auth/callback",
+    ]) {
+      expect(isRequiresConnectionPath(path)).toBe(true);
+    }
+
+    for (const path of ["/", "/buscar", "/producto/abc", "/offline"]) {
+      expect(isRequiresConnectionPath(path)).toBe(false);
+    }
   });
 });
 

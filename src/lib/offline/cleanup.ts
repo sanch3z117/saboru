@@ -1,5 +1,4 @@
 import { openOfflineDb } from "@/lib/offline/db";
-import { clearViewer } from "@/lib/offline/viewer";
 
 const PRIVATE_CACHE_PREFIXES = [
   "pages",
@@ -15,6 +14,26 @@ export function isPrivateCacheName(name: string) {
   return PRIVATE_CACHE_PREFIXES.some(
     (prefix) => name === prefix || name.startsWith(`${prefix}-`),
   );
+}
+
+/** Borra las claves `saboru:*` (viewer, avisos de guardado, etc.). */
+export function clearPrivateStorage() {
+  const clear = (storage: Storage | undefined) => {
+    if (!storage) return;
+    const keys: string[] = [];
+    for (let index = 0; index < storage.length; index += 1) {
+      const key = storage.key(index);
+      if (key?.startsWith("saboru:")) {
+        keys.push(key);
+      }
+    }
+    for (const key of keys) {
+      storage.removeItem(key);
+    }
+  };
+
+  if (typeof localStorage !== "undefined") clear(localStorage);
+  if (typeof sessionStorage !== "undefined") clear(sessionStorage);
 }
 
 export async function countPendingOutbox(): Promise<number> {
@@ -71,7 +90,7 @@ export async function cleanupLocalUserData(): Promise<{
     );
   }
 
-  clearViewer();
+  clearPrivateStorage();
 
   return { pendingRemoved };
 }

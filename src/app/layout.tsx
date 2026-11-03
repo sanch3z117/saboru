@@ -3,6 +3,7 @@ import { Inter, Poppins } from "next/font/google";
 
 import { ServiceWorkerUpdate } from "@/components/offline/service-worker-update";
 import { SyncProvider } from "@/components/offline/sync-provider";
+import { ViewerRefresher } from "@/components/offline/viewer-refresher";
 
 import "./globals.css";
 
@@ -47,6 +48,7 @@ export default function RootLayout({
       >
         {children}
         <SyncProvider />
+        <ViewerRefresher />
         <ServiceWorkerUpdate />
       </body>
     </html>

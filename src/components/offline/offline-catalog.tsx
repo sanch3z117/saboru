@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { RetryButton } from "@/components/offline/retry-button";
+import { RequiresConnection } from "@/components/offline/requires-connection";
 import { OfflineFavoriteButton } from "@/components/offline/offline-favorite-button";
 import { OfflineReportForm } from "@/components/offline/offline-report-form";
 import { OfflineReviewForm } from "@/components/offline/offline-review-form";
@@ -11,6 +12,8 @@ import { searchCatalog, type CatalogSearchItem } from "@/lib/catalog/search";
 import { formatDate, formatPrice, formatRating } from "@/lib/format";
 import { snapshotToSearchItems } from "@/lib/offline/snapshot";
 import { readSnapshot, refreshSnapshot } from "@/lib/offline/snapshot-store";
+import { isRequiresConnectionPath } from "@/lib/offline/cache-rules";
+import { QUOTA_MESSAGE } from "@/lib/offline/quota";
 import { readViewer, type CachedViewer } from "@/lib/offline/viewer";
 import { createClient } from "@/lib/supabase/browser";
 import type { CatalogSnapshot, PublicReviewRow } from "@/types/catalog";
@@ -176,6 +179,16 @@ export function OfflineCatalog() {
     return session.email.toLowerCase().endsWith("@uptc.edu.co");
   }, [session, viewer]);
 
+  const [pathname, setPathname] = useState("");
+
+  useEffect(() => {
+    setPathname(window.location.pathname);
+  }, []);
+
+  if (pathname && isRequiresConnectionPath(pathname)) {
+    return <RequiresConnection />;
+  }
+
   if (status === "loading") {
     return <p className="py-10 text-base text-carbon/70">Cargando catálogo…</p>;
   }
@@ -192,7 +205,7 @@ export function OfflineCatalog() {
         </h1>
         <p className="mt-4 text-base leading-relaxed text-carbon/80">
           {status === "quota"
-            ? "El almacenamiento del dispositivo está lleno. Puedes seguir usando SaborU con conexión; libera espacio e inténtalo de nuevo."
+            ? QUOTA_MESSAGE
             : status === "corrupt"
               ? "Vuelve a conectarte para descargar el catálogo de nuevo."
               : "Vuelve a conectarte para descargar el catálogo."}

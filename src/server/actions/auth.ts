@@ -1,7 +1,6 @@
 "use server";
 
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import type { z } from "zod";
 
 import { emailSchema, studentEmailSchema } from "@/lib/auth/validation";
@@ -142,10 +141,4 @@ export async function requestLoginMagicLink(
   }
 
   return { error: null, sent: true };
-}
-
-export async function signOutAction() {
-  const supabase = await createClient();
-  await supabase.auth.signOut();
-  redirect("/login");
 }

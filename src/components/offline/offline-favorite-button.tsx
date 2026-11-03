@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { isFavorite, setLocalFavorite } from "@/lib/offline/favorites";
 import { enqueueOperation } from "@/lib/offline/outbox";
+import { QUOTA_MESSAGE } from "@/lib/offline/quota";
 
 export function OfflineFavoriteButton({
   userId,
@@ -44,7 +45,7 @@ export function OfflineFavoriteButton({
       setPending(false);
       setMessage(
         local.reason === "quota"
-          ? "El almacenamiento del dispositivo está lleno."
+          ? QUOTA_MESSAGE
           : "No pudimos guardar el favorito.",
       );
       return;

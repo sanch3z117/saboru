@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { countOutbox } from "@/lib/offline/outbox";
+import { cleanupLocalUserData } from "@/lib/offline/cleanup";
 import { backoffDelayMs, syncOutbox } from "@/lib/offline/sync";
+import { readViewer } from "@/lib/offline/viewer";
 import { reviewErrorMessage, type ReviewErrorCode } from "@/lib/reviews/errors";
 import { createClient } from "@/lib/supabase/browser";
 
@@ -122,6 +124,13 @@ export function SyncProvider() {
       .then(async ({ data }) => {
         if (cancelled) return;
         userIdRef.current = data.session?.user.id ?? null;
+
+        // Cambio de usuario sin cerrar sesión: no arrastrar datos del anterior.
+        const viewer = readViewer();
+        if (userIdRef.current && viewer && viewer.userId !== userIdRef.current) {
+          await cleanupLocalUserData().catch(() => undefined);
+        }
+
         await refreshCounts();
         if (userIdRef.current && navigator.onLine !== false) {
           void run();

@@ -1,17 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { useSignOut } from "@/components/auth/use-sign-out";
 import { createClient } from "@/lib/supabase/browser";
-import {
-  cleanupLocalUserData,
-  confirmPendingOutbox,
-} from "@/lib/offline/cleanup";
 
 export function SessionMenu() {
-  const router = useRouter();
+  const signOut = useSignOut();
   const [email, setEmail] = useState<string | null>();
 
   useEffect(() => {
@@ -40,15 +36,8 @@ export function SessionMenu() {
     <button
       type="button"
       className="text-sm font-semibold text-carbon underline underline-offset-4"
-      onClick={async () => {
-        if (!(await confirmPendingOutbox())) {
-          return;
-        }
-        const supabase = createClient();
-        await supabase.auth.signOut();
-        await cleanupLocalUserData().catch(() => undefined);
-        router.push("/login");
-        router.refresh();
+      onClick={() => {
+        void signOut();
       }}
     >
       Salir

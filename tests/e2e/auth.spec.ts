@@ -153,8 +153,8 @@ async function submitMagicLink(
   await expect(page.getByRole("status")).toContainText("Revisa tu correo");
 }
 
-async function seedLocalUserData(page: Page) {
-  await page.evaluate(async () => {
+async function seedLocalUserData(page: Page, userId: string) {
+  await page.evaluate(async (sessionUserId) => {
     const request = indexedDB.open("saboru-offline", 1);
     request.onupgradeneeded = () => {
       const db = request.result;
@@ -193,7 +193,7 @@ async function seedLocalUserData(page: Page) {
       });
       tx.objectStore("outbox").put({
         clientId: "pending-1",
-        userId: "u1",
+        userId: sessionUserId,
         type: "review",
         payload: {},
         status: "pending",
@@ -202,7 +202,7 @@ async function seedLocalUserData(page: Page) {
       });
       tx.objectStore("favorites").put({
         id: "favorite-1",
-        userId: "u1",
+        userId: sessionUserId,
         establishmentId: "e1",
         productId: null,
         createdAt: 1,
@@ -214,7 +214,18 @@ async function seedLocalUserData(page: Page) {
 
     const cache = await caches.open("pages");
     await cache.put("/producto/privado", new Response("privado"));
-  });
+
+    localStorage.setItem(
+      "saboru:viewer",
+      JSON.stringify({
+        userId: sessionUserId,
+        email: "u1@uptc.edu.co",
+        role: "student",
+        canReview: true,
+      }),
+    );
+    sessionStorage.setItem("saboru:panel-notice", "Ficha guardada.");
+  }, userId);
 }
 
 async function readLocalUserData(page: Page) {
@@ -240,6 +251,8 @@ async function readLocalUserData(page: Page) {
       favorites: await count("favorites"),
       snapshot: await count("snapshot"),
       caches: await caches.keys(),
+      viewer: localStorage.getItem("saboru:viewer"),
+      notice: sessionStorage.getItem("saboru:panel-notice"),
     };
     db.close();
     return result;
@@ -263,16 +276,16 @@ test.describe("autenticación", () => {
       await expect(page).toHaveURL(/\/$/);
       await expect(page.getByRole("button", { name: "Salir" })).toBeVisible();
 
-      const role = await withDb(async (client) => {
-        const result = await client.query<{ role: string }>(
-          "select role from public.profiles where email = $1",
+      const account = await withDb(async (client) => {
+        const result = await client.query<{ id: string; role: string }>(
+          "select id, role from public.profiles where email = $1",
           [email],
         );
-        return result.rows[0]?.role;
+        return result.rows[0];
       });
-      expect(role).toBe("student");
+      expect(account?.role).toBe("student");
 
-      await seedLocalUserData(page);
+      await seedLocalUserData(page, account!.id);
       let dialogMessage = "";
       page.once("dialog", async (dialog) => {
         dialogMessage = dialog.message();
@@ -291,6 +304,8 @@ test.describe("autenticación", () => {
       expect(local.favorites).toBe(0);
       expect(local.snapshot).toBe(1);
       expect(local.caches).not.toContain("pages");
+      expect(local.viewer).toBeNull();
+      expect(local.notice).toBeNull();
 
       await page.goto("/panel");
       await expect(page).toHaveURL(/\/login$/);
@@ -464,7 +479,7 @@ test.describe("autenticación", () => {
     await expect(page.locator("p[role='alert']")).toContainText(/invitación/i);
   });
 
-  test("un admin es redirigido a /admin tras el enlace", async ({
+  test("un admin entra a /admin y cierra sesión desde el panel", async ({
     page,
     browserName,
   }) => {
@@ -491,8 +506,8 @@ test.describe("autenticación", () => {
         page.getByRole("heading", { name: "Administración" }),
       ).toBeVisible();
 
-      // Camino de la server action: limpia y luego llama a signOutAction.
-      await seedLocalUserData(page);
+      // Cierre desde /admin con el hook cliente: sincroniza, limpia y navega.
+      await seedLocalUserData(page, adminId);
       page.once("dialog", async (dialog) => {
         await dialog.accept();
       });
@@ -506,6 +521,11 @@ test.describe("autenticación", () => {
       expect(local.favorites).toBe(0);
       expect(local.snapshot).toBe(1);
       expect(local.caches).not.toContain("pages");
+      expect(local.viewer).toBeNull();
+      expect(local.notice).toBeNull();
+
+      await page.goto("/admin");
+      await expect(page).toHaveURL(/\/login$/);
     } finally {
       await deleteAuthUsers([adminId].filter(Boolean));
     }

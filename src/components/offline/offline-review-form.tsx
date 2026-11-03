@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import { enqueueOperation } from "@/lib/offline/outbox";
+import { QUOTA_MESSAGE } from "@/lib/offline/quota";
 import { createReviewSchema } from "@/lib/validations/review";
 
 const RATINGS = [
@@ -79,7 +80,7 @@ export function OfflineReviewForm({
         tone: "error",
         text:
           result.reason === "quota"
-            ? "El almacenamiento del dispositivo está lleno. Libera espacio e inténtalo de nuevo."
+            ? QUOTA_MESSAGE
             : "No pudimos guardar la reseña para enviarla después.",
       });
       return;

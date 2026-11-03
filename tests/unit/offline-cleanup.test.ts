@@ -127,4 +127,50 @@ describe("limpieza de datos privados al cerrar sesión", () => {
     expect(isPrivateCacheName("public-images")).toBe(false);
     expect(isPrivateCacheName("serwist-precache-v2-x")).toBe(false);
   });
+
+  it("borra saboru:* de localStorage y sessionStorage", async () => {
+    const makeStorage = (entries: Record<string, string>) => {
+      const map = new Map(Object.entries(entries));
+      return {
+        get length() {
+          return map.size;
+        },
+        key(index: number) {
+          return Array.from(map.keys())[index] ?? null;
+        },
+        getItem(key: string) {
+          return map.get(key) ?? null;
+        },
+        setItem(key: string, value: string) {
+          map.set(key, value);
+        },
+        removeItem(key: string) {
+          map.delete(key);
+        },
+        clear() {
+          map.clear();
+        },
+      } as Storage;
+    };
+
+    const local = makeStorage({
+      "saboru:viewer": "{}",
+      "saboru:panel-notice": "Ficha guardada.",
+      otro: "se conserva",
+    });
+    const session = makeStorage({
+      "saboru:review-saved": "publicada",
+      keep: "se conserva",
+    });
+    vi.stubGlobal("localStorage", local);
+    vi.stubGlobal("sessionStorage", session);
+
+    await cleanupLocalUserData();
+
+    expect(local.getItem("saboru:viewer")).toBeNull();
+    expect(local.getItem("saboru:panel-notice")).toBeNull();
+    expect(local.getItem("otro")).toBe("se conserva");
+    expect(session.getItem("saboru:review-saved")).toBeNull();
+    expect(session.getItem("keep")).toBe("se conserva");
+  });
 });
