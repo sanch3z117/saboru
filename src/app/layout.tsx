@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Poppins } from "next/font/google";
 
+import { ServiceWorkerUpdate } from "@/components/offline/service-worker-update";
+
 import "./globals.css";
 
 const inter = Inter({
@@ -43,6 +45,7 @@ export default function RootLayout({
         className={`${inter.variable} ${poppins.variable} font-sans antialiased`}
       >
         {children}
+        <ServiceWorkerUpdate />
       </body>
     </html>
   );

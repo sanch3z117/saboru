@@ -3,6 +3,13 @@
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
 import { CacheFirst, ExpirationPlugin, NetworkOnly, Serwist } from "serwist";
 
+import {
+  OFFLINE_IMAGE_CACHE,
+  cacheStrategyFor,
+  legacyCachesToDelete,
+  type CacheRuleInput,
+} from "@/lib/offline/cache-rules";
+
 declare global {
   interface WorkerGlobalScope extends SerwistGlobalConfig {
     __SW_MANIFEST: (PrecacheEntry | string)[] | undefined;
@@ -11,19 +18,37 @@ declare global {
 
 declare const self: ServiceWorkerGlobalScope;
 
+function ruleInput({
+  url,
+  request,
+  sameOrigin,
+}: {
+  url: URL;
+  request: Request;
+  sameOrigin: boolean;
+}): CacheRuleInput {
+  return {
+    url: url.href,
+    method: request.method,
+    sameOrigin,
+    destination: request.destination,
+    rsc: request.headers.get("RSC") === "1",
+  };
+}
+
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
-  skipWaiting: true,
-  clientsClaim: true,
+  precacheOptions: { cleanupOutdatedCaches: true },
+  // Actualización controlada: la app pide SKIP_WAITING cuando el usuario acepta.
+  skipWaiting: false,
+  clientsClaim: false,
   navigationPreload: true,
   runtimeCaching: [
     {
-      // Fotos públicas e iconos: cache-first con caducidad.
-      matcher: ({ request }) =>
-        request.destination === "image" ||
-        /\.(?:png|jpe?g|webp|svg|ico|gif)$/i.test(request.url),
+      matcher: (context) =>
+        cacheStrategyFor(ruleInput(context)) === "image",
       handler: new CacheFirst({
-        cacheName: "public-images",
+        cacheName: OFFLINE_IMAGE_CACHE,
         plugins: [
           new ExpirationPlugin({
             maxEntries: 60,
@@ -34,11 +59,10 @@ const serwist = new Serwist({
       }),
     },
     {
-      // Todo lo demás del mismo origen (navegaciones, RSC y API): solo red.
-      // Las páginas de la app incluyen datos de la sesión, así que no se
-      // cachean; el soporte offline completo llega en la Fase 6.
-      matcher: ({ request, sameOrigin }) =>
-        sameOrigin && request.method === "GET",
+      // Navegación, RSC, API y Supabase: solo red. Si falla una navegación,
+      // Serwist sirve `/offline` (precacheado, sin datos de sesión).
+      matcher: (context) =>
+        cacheStrategyFor(ruleInput(context)) === "network-only",
       handler: new NetworkOnly(),
     },
   ],
@@ -52,6 +76,17 @@ const serwist = new Serwist({
       },
     ],
   },
+});
+
+// Cachés de la versión anterior (pages/pages-rsc/others…) fuera.
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    (async () => {
+      const names = await caches.keys();
+      const stale = legacyCachesToDelete(names, [OFFLINE_IMAGE_CACHE]);
+      await Promise.all(stale.map((name) => caches.delete(name)));
+    })(),
+  );
 });
 
 serwist.addEventListeners();

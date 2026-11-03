@@ -25,10 +25,24 @@ El service worker (`src/app/sw.ts`) solo maneja red y caché. **No contiene lóg
 
 ## Service worker (Serwist)
 
-- Precache del app shell generado en el build (`@serwist/next`).
+- Precache del app shell generado en el build (`@serwist/next`), con
+  `precacheOptions: { cleanupOutdatedCaches: true }`; `/offline` entra como
+  entrada adicional (`next.config.ts`).
 - **Desactivado en `npm run dev`.** Se prueba con `npm run build && npm run start`.
-- Actualización controlada: el nuevo SW queda en espera (`waiting`); la app muestra "Hay una versión nueva — Actualizar" y solo entonces llama `skipWaiting` y recarga. Nunca recargar mientras haya un formulario o la cola en curso.
-- Limpieza de cachés de versiones anteriores al activar.
+- Config: `skipWaiting: false`, `clientsClaim: false`, `navigationPreload: true`,
+  `fallbacks` a `/offline` y `runtimeCaching` construido a partir de
+  `src/lib/offline/cache-rules.ts`.
+- Actualización controlada: con `skipWaiting: false` el SW nuevo queda en
+  `waiting`; Serwist ya escucha el mensaje `SKIP_WAITING`. El componente
+  `src/components/offline/service-worker-update.tsx` muestra el aviso "Hay una
+  versión nueva de SaborU" y solo envía el mensaje cuando el usuario pulsa
+  "Actualizar". `src/lib/offline/update-guard.ts` bloquea el botón mientras un
+  formulario o un envío esté en curso. Al activarse la versión nueva se recarga
+  una sola vez (`controllerchange`).
+- Limpieza de cachés de versiones anteriores al activar: `legacyCachesToDelete`
+  borra `pages`, `pages-rsc`, `pages-rsc-prefetch`, `others`, `apis`,
+  `next-data`, `next-image`, `static-*`, `google-fonts-*` y `cross-origin`;
+  conserva el precache y `public-images`.
 
 ### Estrategias por tipo de recurso
 
@@ -49,6 +63,10 @@ llega completo en la Fase 6.
 
 ### Nunca se cachea (lista de exclusión, probada)
 
+La lista vive en `src/lib/offline/cache-rules.ts` (`cacheStrategyFor`) y tiene
+pruebas unitarias en `tests/unit/offline-cache-rules.test.ts`. El service worker
+aplica esa decisión; no hay otra copia de las reglas.
+
 - Navegaciones HTML y peticiones RSC de todas las rutas (`/`, `/buscar`, `/producto/*`,
   `/establecimiento/*`, `/panel/*`, `/admin/*`, `/auth/*`, `/login`, `/registro*`,
   `/offline`).
@@ -57,9 +75,15 @@ llega completo en la Fase 6.
 - Respuestas con `Set-Cookie`, con `Authorization` o con `Cache-Control: private/no-store`.
 - Respuestas no `ok` (4xx/5xx) y respuestas opacas.
 
-El HTML cacheado **no debe contener datos del usuario**. Mientras el offline completo
-no exista (Fase 6), ninguna página se cachea; solo se precargan estáticos y se sirve
-`/offline` como respaldo de navegación.
+Solo se cachean las imágenes públicas (fotos ya vistas) y el precache del app
+shell. El HTML cacheado **no debe contener datos del usuario**.
+
+### Punto de entrada offline (6.1)
+
+`/offline` es el shell público precacheado (sin datos de sesión): cualquier
+navegación que falle se sirve desde ahí. Es la decisión de 6.1 mientras no existe
+el snapshot local; en 6.2 se amplía para leer el snapshot y permitir buscar sin
+conexión. Queda prohibido dejar `NetworkOnly` sin el fallback `/offline`.
 
 ## Snapshot local del catálogo
 

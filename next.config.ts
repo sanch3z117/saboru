@@ -17,7 +17,6 @@ function getRevision() {
 const withSerwist = withSerwistInit({
   swSrc: "src/app/sw.ts",
   swDest: "public/sw.js",
-  cacheOnNavigation: true,
   additionalPrecacheEntries: [{ url: "/offline", revision: getRevision() }],
   disable: process.env.NODE_ENV === "development",
 });

@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
+import { useUpdateBlocker } from "@/components/offline/use-update-blocker";
 import {
   saveReviewAction,
   type ReviewFormState,
@@ -48,6 +49,7 @@ export function ReviewForm({
   const [comment, setComment] = useState(initial?.comment ?? "");
   const [state, setState] = useState<ReviewFormState>(initialState);
   const [pending, setPending] = useState(false);
+  useUpdateBlocker(pending);
 
   useEffect(() => {
     setClientId(crypto.randomUUID());

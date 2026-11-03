@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 
+import { useUpdateBlocker } from "@/components/offline/use-update-blocker";
 import type { VendorFormState } from "@/lib/vendor/form-state";
 
 export const PANEL_NOTICE_KEY = "saboru:panel-notice";
@@ -16,6 +17,8 @@ export function useVendorFormFeedback(
   state: VendorFormState,
   pending: boolean,
 ) {
+  useUpdateBlocker(pending);
+
   useEffect(() => {
     if (state.status === "success") {
       sessionStorage.setItem(PANEL_NOTICE_KEY, state.message);
