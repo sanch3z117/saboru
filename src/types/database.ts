@@ -655,6 +655,10 @@ export type Database = {
         Args: Record<PropertyKey, never>;
         Returns: number;
       };
+      photo_establishment_id: {
+        Args: { object_name: string };
+        Returns: string;
+      };
       search_products: {
         Args: {
           p_block_id: string;
