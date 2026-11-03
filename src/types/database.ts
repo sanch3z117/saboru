@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -609,6 +609,20 @@ export type Database = {
       };
     };
     Functions: {
+      admin_create_establishment: {
+        Args: {
+          p_address: string;
+          p_block_id: string;
+          p_category: string;
+          p_description: string;
+          p_lat: number;
+          p_lng: number;
+          p_name: string;
+          p_schedule: Json;
+          p_slug: string;
+        };
+        Returns: string;
+      };
       admin_create_vendor_invite: {
         Args: { p_email: string; p_establishment_id: string };
         Returns: string;
