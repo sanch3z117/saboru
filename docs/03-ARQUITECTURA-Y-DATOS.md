@@ -422,6 +422,7 @@ Mismo patrón para:
 - `vendor_campus_comparison(p_establishment_id)`: promedio global de los 5 criterios del local vs. campus; sin filas si el local no alcanza el mínimo.
 - `vendor_recent_comments(p_establishment_id)`: últimos 10 comentarios no vacíos de reseñas `published`, con `product_id` y `product_name`, **sin autor ni id de usuario**, solo si el local supera el mínimo de reseñas.
 - Las RPC de vendedor son `stable`; las de admin, `volatile`.
+- **Local suspendido:** las RPC siguen devolviendo los agregados al dueño (incluida `vendor_campus_comparison`, que cuenta las reseñas `published` del propio local aunque esté suspendido). El promedio del campus sale solo de `public_reviews` (locales activos). El local suspendido no aparece en el catálogo y el panel lo avisa.
 
 ## RPC de admin (`security definer`, verifican `is_admin()`)
 
@@ -446,9 +447,10 @@ Regla: ninguna tabla nueva sin `enable row level security` y sus políticas. Nun
 
 ## Storage
 
-- Bucket `establishment-photos`: lectura pública; escritura solo en la ruta `{establishment_id}/...` si el usuario es dueño de ese establecimiento (política sobre `storage.objects`).
-- Nombres de archivo con UUID aleatorio, tipos permitidos jpeg/png/webp y tamaño máximo (5 MB, por confirmar).
-- Un vendedor no puede escribir, sobrescribir ni borrar fotos de otro local.
+- Bucket `establishment-photos`: lectura pública; escritura solo en la ruta `{establishment_id}/...` si el usuario es dueño de ese establecimiento (política sobre `storage.objects`). El primer segmento se valida como UUID con `public.photo_establishment_id(text)`, de modo que una ruta inválida no puede colarse por un cast.
+- Nombres de archivo con UUID aleatorio, tipos permitidos `image/jpeg`, `image/png` e `image/webp`, y tamaño máximo 5 MB (configurado en el bucket: `file_size_limit` y `allowed_mime_types`). El servidor vuelve a validar tipo y tamaño antes de subir.
+- Un vendedor no puede escribir, sobrescribir ni borrar fotos de otro local; tampoco puede mover un objeto a otra carpeta en un `update`.
+- La columna `establishments.photos` guarda rutas de Storage (no URLs); la UI arma la URL pública con `photoPublicUrl`.
 - La parte de Storage de la prueba 12 se valida en la Fase 5; en 1.3 solo se probó la parte de tabla (`photos` de otro local no se puede actualizar).
 
 ## Búsqueda del catálogo
@@ -559,4 +561,4 @@ UPSTASH_REDIS_REST_TOKEN=
 - **OneDrive:** excluir `node_modules`, `.next` y `.git` de la sincronización.
 - **Datos reales:** el seed es ficticio; nunca correos ni teléfonos reales.
 - **Tamaño del catálogo local:** si crece mucho, paginar el snapshot; revisar con 20 establecimientos y 200 productos.
-- **Actualización de UI tras mutar (React 19.2.9 + Next 15.5.28):** en producción (`next start`) el árbol RSC actualizado se pierde de forma intermitente (~15–30 %). Se comprobó que el servidor renderiza con datos frescos y que el payload `?_rsc=` responde 200, pero el cliente no lo aplica; pasa con `router.refresh()`, con `useActionState`, con navegación `router.replace` (incluso con URL única) y también sin service worker. En `next dev` no ocurre. Mitigación actual: tras guardar una reseña se recarga la ficha completa y el aviso de éxito se conserva en `sessionStorage`. Revisar al actualizar React o Next y quitar la recarga cuando deje de reproducirse.
+- **Actualización de UI tras mutar (React 19.2.9 + Next 15.5.28):** en producción (`next start`) el árbol RSC actualizado se pierde de forma intermitente (~15–30 %). Se comprobó que el servidor renderiza con datos frescos y que el payload `?_rsc=` responde 200, pero el cliente no lo aplica; pasa con `router.refresh()`, con `useActionState`, con navegación `router.replace` (incluso con URL única) y también sin service worker. En `next dev` no ocurre. Mitigación actual: tras guardar (reseñas y panel del vendedor) se recarga la página completa y el aviso de éxito se conserva en `sessionStorage`; en el panel, si la respuesta de la acción también se pierde, una recarga de respaldo a los 4 s evita dejar datos viejos. Revisar al actualizar React o Next y quitar las recargas cuando deje de reproducirse.
