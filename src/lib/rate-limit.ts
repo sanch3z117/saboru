@@ -3,7 +3,7 @@ import "server-only";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
-type LimiterKind = "search" | "view";
+type LimiterKind = "search" | "view" | "review" | "report";
 
 type Limiters = Record<LimiterKind, Ratelimit>;
 
@@ -38,6 +38,16 @@ function resolveLimiters(): Limiters | null {
       redis,
       limiter: Ratelimit.slidingWindow(60, "1 m"),
       prefix: "saboru:view",
+    }),
+    review: new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(10, "1 h"),
+      prefix: "saboru:review",
+    }),
+    report: new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(20, "1 h"),
+      prefix: "saboru:report",
     }),
   };
 

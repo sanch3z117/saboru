@@ -6,8 +6,11 @@ import { PhotoPlaceholder } from "@/components/catalog/photo-placeholder";
 import { ReviewList } from "@/components/catalog/review-list";
 import { StatsSummary } from "@/components/catalog/stats-summary";
 import { SiteHeader } from "@/components/layout/site-header";
+import { ReviewForm } from "@/components/reviews/review-form";
 import { formatPrice } from "@/lib/format";
+import { isWithinReviewWindow } from "@/lib/reviews/window";
 import { getProductById } from "@/server/queries/catalog";
+import { getReviewContext } from "@/server/queries/reviews";
 import { logProductView } from "@/server/services/catalog-events";
 
 export const metadata: Metadata = {
@@ -27,6 +30,13 @@ export default async function ProductPage({
   }
 
   const { product, establishment, stats, reviews } = data;
+
+  const reviewContext = await getReviewContext(product.id);
+  const editableReview =
+    reviewContext.ownReview &&
+    isWithinReviewWindow(reviewContext.ownReview.created_at)
+      ? reviewContext.ownReview
+      : null;
 
   await logProductView(product.id);
 
@@ -74,11 +84,60 @@ export default async function ProductPage({
           <StatsSummary stats={stats} className="mt-2" />
         </section>
 
+        <section aria-labelledby="escribir" className="mt-8">
+          <h2 id="escribir" className="font-display text-xl font-semibold">
+            {editableReview ? "Edita tu reseña" : "Escribe tu reseña"}
+          </h2>
+
+          {reviewContext.canReview ? (
+            <ReviewForm
+              mode={editableReview ? "edit" : "create"}
+              productId={product.id}
+              establishmentId={product.establishment_id}
+              establishmentSlug={establishment?.slug}
+              reviewId={editableReview?.id}
+              initial={
+                editableReview
+                  ? {
+                      rating_sabor: editableReview.rating_sabor,
+                      rating_cantidad: editableReview.rating_cantidad,
+                      rating_precio: editableReview.rating_precio,
+                      rating_presentacion: editableReview.rating_presentacion,
+                      rating_calidad_precio:
+                        editableReview.rating_calidad_precio,
+                      comment: editableReview.comment,
+                    }
+                  : undefined
+              }
+            />
+          ) : reviewContext.hasSession ? (
+            <p className="mt-3 text-base text-carbon/75">
+              Solo estudiantes institucionales de la UPTC pueden reseñar.
+            </p>
+          ) : (
+            <p className="mt-3 text-base text-carbon/75">
+              <Link
+                href="/login"
+                className="font-semibold text-carbon underline underline-offset-4"
+              >
+                Entra con tu correo UPTC
+              </Link>{" "}
+              para calificar este producto.
+            </p>
+          )}
+        </section>
+
         <section aria-labelledby="resenas" className="mt-8">
           <h2 id="resenas" className="font-display text-xl font-semibold">
             Reseñas
           </h2>
-          <ReviewList reviews={reviews} />
+          <ReviewList
+            reviews={reviews}
+            canReport={reviewContext.canReview}
+            ownReviewIds={
+              reviewContext.ownReview ? [reviewContext.ownReview.id] : []
+            }
+          />
         </section>
       </main>
     </div>
