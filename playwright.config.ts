@@ -32,5 +32,6 @@ export default defineConfig({
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    env: { E2E_SW_TEST: "1" },
   },
 });

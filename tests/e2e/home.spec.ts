@@ -30,6 +30,9 @@ test("expone el manifest y el service worker", async ({ request }) => {
   const manifest = await manifestResponse.json();
   expect(manifest.name).toContain("SaborU");
   expect(manifest.display).toBe("standalone");
+  expect(manifest.start_url).toBe("/");
+  expect(Array.isArray(manifest.icons)).toBe(true);
+  expect(manifest.icons.length).toBeGreaterThanOrEqual(3);
 
   const swResponse = await request.get("/sw.js");
   expect(swResponse.status()).toBe(200);
