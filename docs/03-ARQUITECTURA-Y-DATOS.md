@@ -559,3 +559,4 @@ UPSTASH_REDIS_REST_TOKEN=
 - **OneDrive:** excluir `node_modules`, `.next` y `.git` de la sincronización.
 - **Datos reales:** el seed es ficticio; nunca correos ni teléfonos reales.
 - **Tamaño del catálogo local:** si crece mucho, paginar el snapshot; revisar con 20 establecimientos y 200 productos.
+- **Actualización de UI tras mutar (React 19.2.9 + Next 15.5.28):** en producción (`next start`) el árbol RSC actualizado se pierde de forma intermitente (~15–30 %). Se comprobó que el servidor renderiza con datos frescos y que el payload `?_rsc=` responde 200, pero el cliente no lo aplica; pasa con `router.refresh()`, con `useActionState`, con navegación `router.replace` (incluso con URL única) y también sin service worker. En `next dev` no ocurre. Mitigación actual: tras guardar una reseña se recarga la ficha completa y el aviso de éxito se conserva en `sessionStorage`. Revisar al actualizar React o Next y quitar la recarga cuando deje de reproducirse.

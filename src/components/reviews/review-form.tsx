@@ -18,6 +18,8 @@ const RATINGS = [
 
 const initialState: ReviewFormState = { status: "idle", message: "" };
 
+const SAVED_MESSAGE_KEY = "saboru:review-saved";
+
 type ReviewFormProps = {
   mode: "create" | "edit";
   productId: string;
@@ -49,6 +51,11 @@ export function ReviewForm({
 
   useEffect(() => {
     setClientId(crypto.randomUUID());
+    const savedMessage = sessionStorage.getItem(SAVED_MESSAGE_KEY);
+    if (savedMessage) {
+      sessionStorage.removeItem(SAVED_MESSAGE_KEY);
+      setState({ status: "success", message: savedMessage });
+    }
   }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -61,8 +68,12 @@ export function ReviewForm({
     setPending(false);
 
     if (result.status === "success") {
-      // revalidatePath ya corrió en la acción; recargamos para reflejar la ficha.
-      window.setTimeout(() => window.location.reload(), 700);
+      // Limitación conocida: con React 19.2.9 + Next 15.5.28 en producción el
+      // árbol RSC actualizado se pierde a veces (ni router.refresh() ni la
+      // respuesta de la acción lo aplican). Recargamos la ficha entera y
+      // conservamos el aviso para mostrarlo tras la recarga.
+      sessionStorage.setItem(SAVED_MESSAGE_KEY, result.message);
+      window.location.reload();
     }
   }
 
