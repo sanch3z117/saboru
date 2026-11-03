@@ -214,7 +214,7 @@ grant update (name, description, address, location, schedule, category, photos)
 }
 ```
 
-Hora local `America/Bogota`. Un cierre menor que la apertura (ej. `["18:00","02:00"]`) significa cruce de medianoche.
+Hora local `America/Bogota`. Un cierre menor que la apertura (ej. `["18:00","02:00"]`) significa cruce de medianoche. El editor del panel admite hasta dos franjas por día; el formato soporta más, pero el MVP no las edita (deuda si un local necesita tres).
 
 ### `products`
 
@@ -421,7 +421,8 @@ Mismo patrón para:
 - `vendor_views_by_hour(p_establishment_id)`: consultas por hora (`America/Bogota`).
 - `vendor_campus_comparison(p_establishment_id)`: promedio global de los 5 criterios del local vs. campus; sin filas si el local no alcanza el mínimo.
 - `vendor_recent_comments(p_establishment_id)`: últimos 10 comentarios no vacíos de reseñas `published`, con `product_id` y `product_name`, **sin autor ni id de usuario**, solo si el local supera el mínimo de reseñas.
-- Las RPC de vendedor son `stable`; las de admin, `volatile`.
+- `vendor_set_establishment_location(p_establishment_id, p_lat, p_lng)`: única vía para mover el punto del local. Valida rango de coordenadas (`-90..90`, `-180..180`) y que el local sea del llamante; PostgREST entrega `geography` como EWKB hexadecimal, así que el cliente no construye WKB.
+- Las RPC de vendedor son `stable`; las de admin, `volatile`. `vendor_set_establishment_location` es la excepción `volatile` (escribe).
 - **Local suspendido:** las RPC siguen devolviendo los agregados al dueño (incluida `vendor_campus_comparison`, que cuenta las reseñas `published` del propio local aunque esté suspendido). El promedio del campus sale solo de `public_reviews` (locales activos). El local suspendido no aparece en el catálogo y el panel lo avisa.
 
 ## RPC de admin (`security definer`, verifican `is_admin()`)

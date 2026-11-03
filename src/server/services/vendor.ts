@@ -11,7 +11,9 @@ import {
 } from "@/lib/vendor/photos";
 import type {
   EstablishmentInput,
+  LocationInput,
   ProductInput,
+  WeeklyScheduleInput,
 } from "@/lib/validations/vendor";
 import type { Database } from "@/types/database";
 
@@ -26,7 +28,10 @@ export type VendorResult =
 export async function updateOwnEstablishment(
   client: Client,
   userId: string,
-  input: EstablishmentInput,
+  input: EstablishmentInput & {
+    schedule: WeeklyScheduleInput;
+    location: LocationInput;
+  },
 ): Promise<VendorResult> {
   const establishment = await getOwnEstablishment(client, userId);
   if (!establishment) {
@@ -40,12 +45,23 @@ export async function updateOwnEstablishment(
       description: input.description,
       address: input.address,
       category: input.category,
+      schedule: input.schedule,
     })
     .eq("id", establishment.id)
     .eq("owner_id", userId);
 
   if (error) {
     return { ok: false, message: "No pudimos guardar la ficha." };
+  }
+
+  const location = await client.rpc("vendor_set_establishment_location", {
+    p_establishment_id: establishment.id,
+    p_lat: input.location.lat,
+    p_lng: input.location.lng,
+  });
+
+  if (location.error) {
+    return { ok: false, message: "No pudimos guardar la ubicación." };
   }
 
   return { ok: true };

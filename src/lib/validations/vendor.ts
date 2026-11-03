@@ -16,6 +16,52 @@ const shortTextSchema = z
   .trim()
   .max(120, "El texto no puede pasar de 120 caracteres");
 
+const timeSchema = z
+  .string()
+  .regex(
+    /^([01]\d|2[0-3]):[0-5]\d$/,
+    "Usa una hora válida en formato HH:MM (24 h)",
+  );
+
+export const scheduleRangeSchema = z
+  .tuple([timeSchema, timeSchema])
+  .refine(
+    ([open, close]) => open !== close,
+    "La apertura y el cierre no pueden ser iguales",
+  );
+
+const dayRangesSchema = z
+  .array(scheduleRangeSchema)
+  .max(2, "Cada día admite máximo dos franjas");
+
+export const weeklyScheduleSchema = z.object({
+  mon: dayRangesSchema,
+  tue: dayRangesSchema,
+  wed: dayRangesSchema,
+  thu: dayRangesSchema,
+  fri: dayRangesSchema,
+  sat: dayRangesSchema,
+  sun: dayRangesSchema,
+});
+
+function coordinateSchema(min: number, max: number, label: string) {
+  return z
+    .string()
+    .trim()
+    .min(1, `Escribe la ${label}`)
+    .transform((value) => Number(value))
+    .refine((value) => Number.isFinite(value), `La ${label} debe ser un número`)
+    .refine(
+      (value) => value >= min && value <= max,
+      `La ${label} debe estar entre ${min} y ${max}`,
+    );
+}
+
+export const locationSchema = z.object({
+  lat: coordinateSchema(-90, 90, "latitud"),
+  lng: coordinateSchema(-180, 180, "longitud"),
+});
+
 export const establishmentSchema = z.object({
   name: nameSchema,
   description: descriptionSchema,
@@ -74,3 +120,5 @@ export const photoSchema = z.object({
 
 export type EstablishmentInput = z.infer<typeof establishmentSchema>;
 export type ProductInput = z.infer<typeof productSchema>;
+export type WeeklyScheduleInput = z.infer<typeof weeklyScheduleSchema>;
+export type LocationInput = z.infer<typeof locationSchema>;

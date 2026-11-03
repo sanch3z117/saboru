@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   establishmentSchema,
+  locationSchema,
   productSchema,
+  weeklyScheduleSchema,
 } from "@/lib/validations/vendor";
 import {
   PHOTO_MAX_BYTES,
@@ -10,6 +12,12 @@ import {
   photoPath,
   validatePhoto,
 } from "@/lib/vendor/photos";
+import {
+  formatCoordinate,
+  parsePointHex,
+  scheduleFromFormData,
+} from "@/lib/vendor/schedule";
+import { formatSchedule } from "@/lib/catalog/schedule";
 
 const ESTABLISHMENT_ID = "11111111-1111-4111-8111-111111111111";
 const FILE_ID = "22222222-2222-4222-8222-222222222222";
@@ -128,5 +136,144 @@ describe("fotos del establecimiento", () => {
     );
     expect(isOwnPhotoPath(`${FILE_ID}/foto.jpg`, ESTABLISHMENT_ID)).toBe(false);
     expect(isOwnPhotoPath("foto.jpg", ESTABLISHMENT_ID)).toBe(false);
+  });
+});
+
+const emptyWeek = {
+  mon: [],
+  tue: [],
+  wed: [],
+  thu: [],
+  fri: [],
+  sat: [],
+  sun: [],
+};
+
+describe("horario semanal", () => {
+  it("arma el objeto desde FormData con dos franjas", () => {
+    const formData = new FormData();
+    formData.set("mon-1-start", "08:00");
+    formData.set("mon-1-end", "12:00");
+    formData.set("mon-2-start", "14:00");
+    formData.set("mon-2-end", "18:00");
+    formData.set("fri-1-start", "18:00");
+    formData.set("fri-1-end", "02:00");
+
+    const parsed = scheduleFromFormData(formData);
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+
+    expect(parsed.data.mon).toEqual([
+      ["08:00", "12:00"],
+      ["14:00", "18:00"],
+    ]);
+    expect(parsed.data.fri).toEqual([["18:00", "02:00"]]);
+    expect(parsed.data.sat).toEqual([]);
+  });
+
+  it("falla si una franja queda a medias", () => {
+    const formData = new FormData();
+    formData.set("tue-1-start", "08:00");
+
+    const parsed = scheduleFromFormData(formData);
+    expect(parsed.ok).toBe(false);
+  });
+
+  it("valida el formato de hora y que apertura y cierre difieran", () => {
+    const valid = weeklyScheduleSchema.safeParse({
+      ...emptyWeek,
+      mon: [["08:00", "17:00"]],
+    });
+    expect(valid.success).toBe(true);
+
+    expect(
+      weeklyScheduleSchema.safeParse({
+        ...emptyWeek,
+        mon: [["8:00", "17:00"]],
+      }).success,
+    ).toBe(false);
+
+    expect(
+      weeklyScheduleSchema.safeParse({
+        ...emptyWeek,
+        mon: [["08:00", "08:00"]],
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rechaza más de dos franjas por día", () => {
+    expect(
+      weeklyScheduleSchema.safeParse({
+        ...emptyWeek,
+        mon: [
+          ["08:00", "10:00"],
+          ["11:00", "13:00"],
+          ["14:00", "16:00"],
+        ],
+      }).success,
+    ).toBe(false);
+  });
+
+  it("formatea el horario para la ficha pública", () => {
+    const formatted = formatSchedule({
+      mon: [["08:00", "12:00"]],
+      tue: [],
+    });
+
+    expect(formatted[0]).toEqual({
+      key: "mon",
+      label: "Lunes",
+      ranges: ["08:00–12:00"],
+    });
+    expect(formatted[1]).toEqual({ key: "tue", label: "Martes", ranges: [] });
+    expect(formatted).toHaveLength(7);
+  });
+});
+
+describe("ubicación", () => {
+  it("acepta coordenadas dentro del rango", () => {
+    const parsed = locationSchema.safeParse({
+      lat: "5.552",
+      lng: "-73.3567",
+    });
+
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.lat).toBeCloseTo(5.552, 4);
+      expect(parsed.data.lng).toBeCloseTo(-73.3567, 4);
+    }
+  });
+
+  it("rechaza vacío, texto y fuera de rango", () => {
+    expect(locationSchema.safeParse({ lat: "", lng: "-73" }).success).toBe(
+      false,
+    );
+    expect(
+      locationSchema.safeParse({ lat: "norte", lng: "-73" }).success,
+    ).toBe(false);
+    expect(locationSchema.safeParse({ lat: "91", lng: "-73" }).success).toBe(
+      false,
+    );
+    expect(locationSchema.safeParse({ lat: "5", lng: "-181" }).success).toBe(
+      false,
+    );
+  });
+
+  it("lee el EWKB hexadecimal que devuelve PostGIS", () => {
+    const point = parsePointHex(
+      "0101000020E6100000ED9E3C2CD45652C06891ED7C3F351640",
+    );
+
+    expect(point).not.toBeNull();
+    expect(point?.lat).toBeCloseTo(5.552, 3);
+    expect(point?.lng).toBeCloseTo(-73.3567, 3);
+    expect(formatCoordinate(point!.lat)).toBe("5.552000");
+  });
+
+  it("descarta formatos desconocidos", () => {
+    expect(parsePointHex(null)).toBeNull();
+    expect(parsePointHex("")).toBeNull();
+    expect(parsePointHex("abc")).toBeNull();
+    expect(parsePointHex("0101000020E6100000")).toBeNull();
   });
 });

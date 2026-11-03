@@ -261,6 +261,10 @@ test.describe("panel del vendedor", () => {
 
       const description = `Descripción editada ${randomUUID().slice(0, 8)}`;
       await page.locator("#description").fill(description);
+      await page.getByLabel("Lunes abre", { exact: true }).fill("08:00");
+      await page.getByLabel("Lunes cierra", { exact: true }).fill("17:00");
+      await page.locator("#lat").fill("5.553");
+      await page.locator("#lng").fill("-73.357");
       await submitForm(page, () =>
         page.getByRole("button", { name: "Guardar ficha" }).click(),
       );
@@ -269,15 +273,36 @@ test.describe("panel del vendedor", () => {
         .poll(
           async () =>
             withDb(async (client) => {
-              const result = await client.query<{ description: string }>(
-                "select description from public.establishments where id = $1",
+              const result = await client.query<{
+                description: string;
+                schedule: { mon?: string[][] };
+                lat: string;
+                lng: string;
+              }>(
+                `select description, schedule,
+                        extensions.st_y(location::extensions.geometry)::text as lat,
+                        extensions.st_x(location::extensions.geometry)::text as lng
+                 from public.establishments where id = $1`,
                 [fixture.establishmentId],
               );
-              return result.rows[0]?.description;
+              return result.rows[0];
             }),
           { timeout: 15_000 },
         )
-        .toBe(description);
+        .toMatchObject({
+          description,
+          schedule: { mon: [["08:00", "17:00"]] },
+        });
+
+      await expect(page.locator("#description")).toHaveValue(description);
+      await expect(
+        page.getByLabel("Lunes abre", { exact: true }),
+      ).toHaveValue("08:00");
+      await expect(page.getByLabel("Lunes cierra", { exact: true })).toHaveValue(
+        "17:00",
+      );
+      await expect(page.locator("#lat")).toHaveValue("5.553000");
+      await expect(page.locator("#lng")).toHaveValue("-73.357000");
 
       await page.locator("#name-new").fill("Almuerzo E2E");
       await page.locator("#price-new").fill("9000");
@@ -402,6 +427,12 @@ test.describe("panel del vendedor", () => {
       await expect(
         page.getByText("Necesitas al menos 5 reseñas publicadas"),
       ).toBeVisible();
+
+      await page.goto(`/establecimiento/${fixture.slug}`);
+      await expect(
+        page.getByRole("heading", { name: "Horario" }),
+      ).toBeVisible();
+      await expect(page.getByText("08:00–17:00")).toBeVisible();
     } finally {
       await deleteFixture(fixture);
     }

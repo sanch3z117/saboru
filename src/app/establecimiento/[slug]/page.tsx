@@ -6,6 +6,7 @@ import { PhotoPlaceholder } from "@/components/catalog/photo-placeholder";
 import { ReviewList } from "@/components/catalog/review-list";
 import { StatsSummary } from "@/components/catalog/stats-summary";
 import { SiteHeader } from "@/components/layout/site-header";
+import { formatSchedule, type WeeklySchedule } from "@/lib/catalog/schedule";
 import { formatPrice } from "@/lib/format";
 import { getEstablishmentBySlug } from "@/server/queries/catalog";
 
@@ -26,6 +27,7 @@ export default async function EstablishmentPage({
   }
 
   const { establishment, products, stats, reviews } = data;
+  const schedule = formatSchedule(establishment.schedule as WeeklySchedule);
   const statsByProduct = new Map(
     stats.map((row) => [row.product_id, row] as const),
   );
@@ -66,6 +68,37 @@ export default async function EstablishmentPage({
           className="mt-6 aspect-[16/6] w-full"
           label="Foto del local próximamente"
         />
+
+        <section aria-labelledby="horario" className="mt-8">
+          <h2
+            id="horario"
+            className="font-display text-2xl font-semibold text-carbon"
+          >
+            Horario
+          </h2>
+          {schedule.some((day) => day.ranges.length > 0) ? (
+            <dl className="mt-2 grid gap-x-8 text-sm sm:grid-cols-2">
+              {schedule.map((day) => (
+                <div
+                  key={day.key}
+                  className="flex items-baseline justify-between gap-4 border-b border-carbon/10 py-1.5"
+                >
+                  <dt className="text-carbon/70">{day.label}</dt>
+                  <dd className="tabular-nums text-carbon">
+                    {day.ranges.length > 0 ? day.ranges.join(" · ") : "Cerrado"}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          ) : (
+            <p className="mt-2 text-base text-carbon/70">
+              Horario por confirmar.
+            </p>
+          )}
+          <p className="mt-2 text-xs text-carbon/55">
+            Hora de Bogotá. El catálogo usa este horario para “abierto ahora”.
+          </p>
+        </section>
 
         <section aria-labelledby="productos" className="mt-10">
           <h2

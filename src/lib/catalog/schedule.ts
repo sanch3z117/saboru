@@ -6,6 +6,24 @@ export type WeeklySchedule = Partial<Record<DayKey, DayRanges>>;
 
 const DAY_KEYS: DayKey[] = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
+export const SCHEDULE_DAYS: { key: DayKey; label: string }[] = [
+  { key: "mon", label: "Lunes" },
+  { key: "tue", label: "Martes" },
+  { key: "wed", label: "Miércoles" },
+  { key: "thu", label: "Jueves" },
+  { key: "fri", label: "Viernes" },
+  { key: "sat", label: "Sábado" },
+  { key: "sun", label: "Domingo" },
+];
+
+export function formatSchedule(schedule: WeeklySchedule | null | undefined) {
+  return SCHEDULE_DAYS.map(({ key, label }) => ({
+    key,
+    label,
+    ranges: (schedule?.[key] ?? []).map(([open, close]) => `${open}–${close}`),
+  }));
+}
+
 function toMinutes(value: string) {
   const [hours, minutes] = value.split(":").map(Number);
   return (hours ?? 0) * 60 + (minutes ?? 0);

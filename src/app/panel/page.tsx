@@ -7,6 +7,8 @@ import { PhotoManager } from "@/components/vendor/photo-manager";
 import { ProductManager } from "@/components/vendor/product-manager";
 import { StatsPanel } from "@/components/vendor/stats-panel";
 import { requireRole } from "@/lib/auth/guards";
+import type { WeeklySchedule } from "@/lib/catalog/schedule";
+import { formatCoordinate, parsePointHex } from "@/lib/vendor/schedule";
 import {
   getOwnEstablishment,
   getVendorDashboard,
@@ -94,6 +96,7 @@ export default async function VendorPanelPage() {
     path,
     url: photoPublicUrl(path),
   }));
+  const coordinates = parsePointHex(establishment.location);
   const status = STATUS[establishment.status] ?? STATUS.pending;
 
   return (
@@ -144,7 +147,17 @@ export default async function VendorPanelPage() {
               <SectionTitle hint="Lo que ve el estudiante cuando entra a tu local.">
                 <span id="ficha">Tu ficha</span>
               </SectionTitle>
-              <EstablishmentForm establishment={establishment} />
+              <EstablishmentForm
+                establishment={{
+                  name: establishment.name,
+                  description: establishment.description,
+                  address: establishment.address,
+                  category: establishment.category,
+                  schedule: establishment.schedule as WeeklySchedule,
+                  lat: coordinates ? formatCoordinate(coordinates.lat) : "",
+                  lng: coordinates ? formatCoordinate(coordinates.lng) : "",
+                }}
+              />
             </section>
 
             <section aria-labelledby="fotos">

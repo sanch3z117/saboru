@@ -282,3 +282,99 @@ describe("bucket establishment-photos", () => {
     expect(parsed.rows[0].value).toBeNull();
   });
 });
+
+describe("horario y ubicación de la ficha", () => {
+  it("el dueño actualiza la ubicación y el horario", async () => {
+    const owner = await createVendor("Ficha completa");
+
+    await asAuthenticated(client, owner.vendorId, () =>
+      client.query(
+        "select public.vendor_set_establishment_location($1, $2, $3)",
+        [owner.establishmentId, 5.553, -73.357],
+      ),
+    );
+
+    const location = await client.query<{ lat: string; lng: string }>(
+      `select
+         extensions.st_y(location::extensions.geometry)::text as lat,
+         extensions.st_x(location::extensions.geometry)::text as lng
+       from public.establishments where id = $1`,
+      [owner.establishmentId],
+    );
+    expect(Number(location.rows[0].lat)).toBeCloseTo(5.553, 4);
+    expect(Number(location.rows[0].lng)).toBeCloseTo(-73.357, 4);
+
+    const schedule = { mon: [["08:00", "17:00"]], sat: [] };
+    const update = await asAuthenticated(client, owner.vendorId, () =>
+      client.query(
+        "update public.establishments set schedule = $1::jsonb where id = $2",
+        [JSON.stringify(schedule), owner.establishmentId],
+      ),
+    );
+    expect(update.rowCount).toBe(1);
+
+    const stored = await client.query<{ schedule: unknown }>(
+      "select schedule from public.establishments where id = $1",
+      [owner.establishmentId],
+    );
+    expect(stored.rows[0].schedule).toEqual(schedule);
+  });
+
+  it("otro vendedor no mueve el local y las coordenadas inválidas fallan", async () => {
+    const owner = await createVendor("Ubicación propia");
+    const other = await createVendor("Ubicación ajena");
+
+    await expect(
+      asAuthenticated(client, other.vendorId, () =>
+        client.query(
+          "select public.vendor_set_establishment_location($1, $2, $3)",
+          [owner.establishmentId, 5.6, -73.4],
+        ),
+      ),
+    ).rejects.toThrow(/forbidden/);
+
+    await expect(
+      asAuthenticated(client, owner.vendorId, () =>
+        client.query(
+          "select public.vendor_set_establishment_location($1, $2, $3)",
+          [owner.establishmentId, 120, -73.357],
+        ),
+      ),
+    ).rejects.toThrow(/invalid_coordinates/);
+
+    await expect(
+      asAnon(client, () =>
+        client.query(
+          "select public.vendor_set_establishment_location($1, $2, $3)",
+          [owner.establishmentId, 5.553, -73.357],
+        ),
+      ),
+    ).rejects.toThrow();
+
+    const untouched = await client.query<{ lat: string }>(
+      `select extensions.st_y(location::extensions.geometry)::text as lat
+       from public.establishments where id = $1`,
+      [owner.establishmentId],
+    );
+    expect(Number(untouched.rows[0].lat)).toBeCloseTo(5.552, 3);
+  });
+
+  it("solo el dueño puede cambiar el horario", async () => {
+    const owner = await createVendor("Horario propio");
+    const other = await createVendor("Horario ajeno");
+
+    const foreign = await asAuthenticated(client, other.vendorId, () =>
+      client.query(
+        `update public.establishments set schedule = $1::jsonb where id = $2`,
+        [JSON.stringify({ mon: [["09:00", "10:00"]] }), owner.establishmentId],
+      ),
+    );
+    expect(foreign.rowCount).toBe(0);
+
+    const stored = await client.query<{ schedule: unknown }>(
+      "select schedule from public.establishments where id = $1",
+      [owner.establishmentId],
+    );
+    expect(stored.rows[0].schedule).toEqual({});
+  });
+});

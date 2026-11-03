@@ -5,9 +5,12 @@ import { z } from "zod";
 
 import type { VendorFormState } from "@/lib/vendor/form-state";
 import { createClient } from "@/lib/supabase/server";
+import { scheduleFromFormData } from "@/lib/vendor/schedule";
 import {
   establishmentSchema,
+  locationSchema,
   productSchema,
+  weeklyScheduleSchema,
 } from "@/lib/validations/vendor";
 import {
   deleteEstablishmentPhoto,
@@ -56,6 +59,7 @@ function revalidateVendor(slug: string | null) {
   revalidatePath("/panel");
   revalidatePath("/");
   revalidatePath("/buscar");
+  revalidatePath("/producto/[id]", "page");
   if (slug) {
     revalidatePath(`/establecimiento/${slug}`);
   }
@@ -85,10 +89,32 @@ export async function saveEstablishmentAction(
     return { status: "error", message: firstIssue(parsed.error) };
   }
 
+  const schedule = scheduleFromFormData(formData);
+  if (!schedule.ok) {
+    return { status: "error", message: schedule.message };
+  }
+
+  const parsedSchedule = weeklyScheduleSchema.safeParse(schedule.data);
+  if (!parsedSchedule.success) {
+    return { status: "error", message: firstIssue(parsedSchedule.error) };
+  }
+
+  const location = locationSchema.safeParse({
+    lat: formData.get("lat") ?? "",
+    lng: formData.get("lng") ?? "",
+  });
+  if (!location.success) {
+    return { status: "error", message: firstIssue(location.error) };
+  }
+
   const result = await updateOwnEstablishment(
     session.supabase,
     session.userId,
-    parsed.data,
+    {
+      ...parsed.data,
+      schedule: parsedSchedule.data,
+      location: location.data,
+    },
   );
 
   if (!result.ok) {

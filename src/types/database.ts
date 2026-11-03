@@ -716,6 +716,10 @@ export type Database = {
           rating_sabor: number;
         }[];
       };
+      vendor_set_establishment_location: {
+        Args: { p_establishment_id: string; p_lat: number; p_lng: number };
+        Returns: undefined;
+      };
       vendor_top_products: {
         Args: { p_establishment_id: string };
         Returns: {
