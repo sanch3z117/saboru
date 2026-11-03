@@ -6,6 +6,7 @@ import { PhotoPlaceholder } from "@/components/catalog/photo-placeholder";
 import { ReviewList } from "@/components/catalog/review-list";
 import { StatsSummary } from "@/components/catalog/stats-summary";
 import { SiteHeader } from "@/components/layout/site-header";
+import { ViewerCache } from "@/components/offline/viewer-cache";
 import { ReviewForm } from "@/components/reviews/review-form";
 import { formatPrice } from "@/lib/format";
 import { isWithinReviewWindow } from "@/lib/reviews/window";
@@ -43,6 +44,8 @@ export default async function ProductPage({
   return (
     <div className="flex min-h-dvh flex-col">
       <SiteHeader />
+
+      <ViewerCache viewer={reviewContext.viewer} />
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-10 sm:px-8">
         {establishment ? (

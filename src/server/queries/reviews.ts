@@ -1,7 +1,15 @@
 import "server-only";
 
+import type { AppRole } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import type { OwnReview } from "@/types/reviews";
+
+export type ReviewViewer = {
+  userId: string;
+  email: string;
+  role: AppRole;
+  canReview: boolean;
+};
 
 export async function getReviewContext(productId: string) {
   const supabase = await createClient();
@@ -10,16 +18,33 @@ export async function getReviewContext(productId: string) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { hasSession: false, canReview: false, ownReview: null };
+    return {
+      hasSession: false,
+      canReview: false,
+      ownReview: null,
+      viewer: null,
+    };
   }
 
-  const { data: institutional } = await supabase.rpc(
-    "is_institutional_student",
-  );
-  const canReview = Boolean(institutional);
+  const [institutionalResult, profileResult] = await Promise.all([
+    supabase.rpc("is_institutional_student"),
+    supabase
+      .from("profiles")
+      .select("role, email")
+      .eq("id", user.id)
+      .single(),
+  ]);
+
+  const canReview = Boolean(institutionalResult.data);
+  const viewer: ReviewViewer = {
+    userId: user.id,
+    email: profileResult.data?.email ?? user.email ?? "",
+    role: (profileResult.data?.role ?? "student") as AppRole,
+    canReview,
+  };
 
   if (!canReview) {
-    return { hasSession: true, canReview: false, ownReview: null };
+    return { hasSession: true, canReview: false, ownReview: null, viewer };
   }
 
   const { data } = await supabase
@@ -35,5 +60,6 @@ export async function getReviewContext(productId: string) {
     hasSession: true,
     canReview: true,
     ownReview: (data as OwnReview | null) ?? null,
+    viewer,
   };
 }

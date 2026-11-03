@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Poppins } from "next/font/google";
 
 import { ServiceWorkerUpdate } from "@/components/offline/service-worker-update";
+import { SyncProvider } from "@/components/offline/sync-provider";
 
 import "./globals.css";
 
@@ -45,6 +46,7 @@ export default function RootLayout({
         className={`${inter.variable} ${poppins.variable} font-sans antialiased`}
       >
         {children}
+        <SyncProvider />
         <ServiceWorkerUpdate />
       </body>
     </html>

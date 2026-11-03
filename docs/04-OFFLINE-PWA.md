@@ -122,7 +122,7 @@ los mismos datos, los ids y el orden del RPC `search_products` contra
 
 ## Búsqueda offline
 
-`search(snapshot, filtros)` es una función pura: presupuesto, distancia al bloque (fórmula haversine en `lib/utils/distance.ts`), categoría, abierto ahora (`isOpenNow`) y orden. Mismos resultados que el RPC online con los mismos datos. Sin mapa interactivo: se muestra el bloque y la distancia en texto.
+`search(snapshot, filtros)` es una función pura: presupuesto, distancia al bloque (fórmula haversine en `src/lib/catalog/distance.ts`), categoría, abierto ahora (`isOpenAt`) y orden. Mismos resultados que el RPC online con los mismos datos. Sin mapa interactivo: se muestra el bloque y la distancia en texto.
 
 ## Cola de envío (outbox)
 
@@ -149,11 +149,32 @@ Flujo:
 4. Se envía un lote (máx. 20) a `POST /api/sync` con cookies de sesión.
 5. Respuesta por operación:
    - `ok` o `duplicate` → se elimina de la cola; la UI pasa a "Publicada" y aparece la insignia "Reseña verificada".
-   - `rejected` (`review_cooldown`, `product_unavailable`, `invalid`, `forbidden`) → se marca `rejected` y se explica al usuario con un mensaje claro; **no se reintenta**.
+   - `rejected` (`review_cooldown`, `product_unavailable`, `invalid`, `forbidden`, `rate_limited`) → se marca `rejected` y se explica al usuario con un mensaje claro; **no se reintenta**.
    - Error de red o 5xx → sigue `pending`, reintento con espera exponencial (máx. ≈5 intentos por ciclo).
    - 401 (sesión vencida) → se conserva la cola y se pide iniciar sesión; no se descarta nada.
 6. Un `sending` huérfano (cierre de la app a mitad) vuelve a `pending` al iniciar.
 7. Un envío solo procesa operaciones del `userId` de la sesión actual.
+8. Se envían en orden de `createdAt` (la primera reseña de un producto gana la regla de 30 días).
+
+Implementación (`src/lib/offline/outbox.ts`, `src/lib/offline/sync.ts`,
+`src/app/api/sync/route.ts`, `src/server/services/sync.ts`):
+
+- El `clientId` de la operación es el mismo que viaja en el payload de
+  reseña/reporte (idempotencia); el de favoritos es local.
+- `/api/sync` exige sesión (401), valida el lote con Zod, limita a **20 lotes/h
+  por usuario** (`sync`) y aplica el límite por tipo (`review`, `report`,
+  `favorite`); llama a los servicios de siempre (`createReview`, `reportReview`,
+  `toggleFavorite`).
+- **Favoritos es add/remove**: el payload es
+  `{ action: "add" | "remove", establishmentId, productId }`. El alta duplicada
+  (23505) se trata como `duplicate`; la baja sin filas, como `ok`. La copia
+  local vive en el store `favorites` por `userId`.
+- Las acciones solo se ofrecen si hay sesión y el usuario es estudiante: se usa
+  el rol/`canReview` cacheado en `localStorage` (`saboru:viewer`, escrito al
+  visitar una ficha con sesión) y, si no hay caché, el dominio
+  `@uptc.edu.co`. Vendedor y admin no ven el formulario; el servidor sigue
+  validando con `is_institutional_student()`.
+- El servicio de sync no registra `log_search` ni `log_product_view`.
 
 Reglas de negocio (30 días, dominio, estado) se aplican **en el servidor y en la base**, nunca confiando en lo que dice el cliente. Si dos operaciones offline chocan con la regla de 30 días, gana la primera que llegue.
 
@@ -204,7 +225,7 @@ Un segundo usuario en el mismo dispositivo nunca ve ni envía la cola del primer
 - Búsqueda pura: presupuesto, distancia, categoría, abierto ahora (incluye cruce de medianoche y día cerrado).
 - Snapshot: `snapshotToSearchItems` (join con establecimiento, `distance_m` por haversine, `establishment_schedule`, descarte de agotados/huérfanos).
 - Store del snapshot: guardar/leer, no reescribir con la misma `version`, registro corrupto, error de red, HTTP no-OK, JSON inválido y `QuotaExceededError` sin perder el snapshot anterior.
-- Outbox: encolar, reintentar, `duplicate`, `rejected` sin reintento, `sending` huérfano, aislamiento por `userId`.
+- Outbox: encolar, validación Zod, `duplicate`, `rejected` sin reintento, `sending` huérfano, aislamiento por `userId`, 401/red/5xx, backoff y favoritos add/remove locales.
 - Limpieza al cerrar sesión: outbox y favoritos vacíos, snapshot conservado, cachés privadas borradas, idempotencia.
 - Reglas de la lista de exclusión del service worker (función pura que decide si una petición es cacheable).
 
@@ -213,6 +234,9 @@ Un segundo usuario en el mismo dispositivo nunca ve ni envía la cola del primer
 - Paridad online/offline: con los mismos datos, `search_products` y
   `snapshotToSearchItems` + `searchCatalog` devuelven los mismos ids en el mismo
   orden (presupuesto, categoría y horario).
+- `/api/sync` (servicios): idempotencia por `client_id` de reseñas y reportes,
+  favorito add/remove idempotente, `review_cooldown`, límite por tipo, 20
+  lotes/h y operaciones sin sesión rechazadas.
 
 ### E2E (Playwright, sobre `build` + `start`)
 
@@ -221,9 +245,9 @@ La suite corre con `workers: 1`: comparte service worker e IndexedDB y en parale
 es inestable en máquinas lentas.
 
 1. **Lectura offline:** visita con red → se corta la red → recarga → buscar por presupuesto → abrir una ficha completa. Se prueba `/offline` sin snapshot (“Vuelve a conectarte para descargar el catálogo.”) y con snapshot (app de búsqueda y ficha en el panel).
-2. **Escritura offline:** sin red, escribir una reseña → "Pendiente de envío" → volver la red → se publica y aparece "Reseña verificada".
+2. **Escritura offline:** sin red, escribir una reseña → "Pendiente de envío" → volver la red → se publica y aparece "Reseña verificada"; reportar una reseña y guardar/quitar un favorito offline. Se comprueba también que admin y vendedor no ven el formulario.
 3. **Privacidad:** cerrar sesión desde el menú y desde `/admin` (server action) → IndexedDB y cachés sin datos privados, snapshot conservado; `/panel` sin red muestra "Requiere conexión".
-4. **Regla de 30 días offline:** dos reseñas offline del mismo producto → la segunda queda `rejected` con mensaje claro.
+4. **Regla de 30 días offline:** dos reseñas offline del mismo producto → la primera se publica y la segunda queda `rejected` con el mensaje de 30 días.
 5. **Actualización:** con una versión nueva en espera, aparece el aviso y no recarga sola.
 6. **Instalabilidad:** manifest válido y SW activo.
 

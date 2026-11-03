@@ -3,7 +3,13 @@ import "server-only";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
-type LimiterKind = "search" | "view" | "review" | "report";
+type LimiterKind =
+  | "search"
+  | "view"
+  | "review"
+  | "report"
+  | "favorite"
+  | "sync";
 
 type Limiters = Record<LimiterKind, Ratelimit>;
 
@@ -49,10 +55,22 @@ function resolveLimiters(): Limiters | null {
       limiter: Ratelimit.slidingWindow(20, "1 h"),
       prefix: "saboru:report",
     }),
+    favorite: new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(60, "1 h"),
+      prefix: "saboru:favorite",
+    }),
+    sync: new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(20, "1 h"),
+      prefix: "saboru:sync",
+    }),
   };
 
   return cachedLimiters;
 }
+
+export type { LimiterKind };
 
 export async function checkRateLimit(kind: LimiterKind, identifier: string) {
   const limiters = resolveLimiters();

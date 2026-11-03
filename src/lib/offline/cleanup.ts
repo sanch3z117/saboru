@@ -1,4 +1,5 @@
 import { openOfflineDb } from "@/lib/offline/db";
+import { clearViewer } from "@/lib/offline/viewer";
 
 const PRIVATE_CACHE_PREFIXES = [
   "pages",
@@ -69,6 +70,8 @@ export async function cleanupLocalUserData(): Promise<{
       names.filter(isPrivateCacheName).map((name) => caches.delete(name)),
     );
   }
+
+  clearViewer();
 
   return { pendingRemoved };
 }

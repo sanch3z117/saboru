@@ -3,11 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { RetryButton } from "@/components/offline/retry-button";
+import { OfflineReportForm } from "@/components/offline/offline-report-form";
+import { OfflineReviewForm } from "@/components/offline/offline-review-form";
 import { formatSchedule, type WeeklySchedule } from "@/lib/catalog/schedule";
 import { searchCatalog, type CatalogSearchItem } from "@/lib/catalog/search";
 import { formatDate, formatPrice, formatRating } from "@/lib/format";
 import { snapshotToSearchItems } from "@/lib/offline/snapshot";
 import { readSnapshot, refreshSnapshot } from "@/lib/offline/snapshot-store";
+import { readViewer, type CachedViewer } from "@/lib/offline/viewer";
+import { createClient } from "@/lib/supabase/browser";
 import type { CatalogSnapshot, PublicReviewRow } from "@/types/catalog";
 
 type Status = "loading" | "ready" | "empty" | "corrupt" | "quota";
@@ -39,6 +43,28 @@ export function OfflineCatalog() {
   const [category, setCategory] = useState("");
   const [openNow, setOpenNow] = useState(false);
   const [selected, setSelected] = useState<CatalogSearchItem | null>(null);
+  const [session, setSession] = useState<{
+    userId: string;
+    email: string;
+  } | null>(null);
+  const [viewer, setViewer] = useState<CachedViewer | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void createClient()
+      .auth.getSession()
+      .then(({ data }) => {
+        if (cancelled) return;
+        const user = data.session?.user;
+        setSession(user ? { userId: user.id, email: user.email ?? "" } : null);
+        setViewer(readViewer());
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -141,6 +167,14 @@ export function OfflineCatalog() {
     });
   }, [snapshot, activeBlock, budget, category, openNow]);
 
+  const canParticipate = useMemo(() => {
+    if (!session) return false;
+    if (viewer && viewer.userId === session.userId) {
+      return viewer.role === "student" && viewer.canReview;
+    }
+    return session.email.toLowerCase().endsWith("@uptc.edu.co");
+  }, [session, viewer]);
+
   if (status === "loading") {
     return <p className="py-10 text-base text-carbon/70">Cargando catálogo…</p>;
   }
@@ -186,6 +220,8 @@ export function OfflineCatalog() {
       <OfflineDetail
         item={selected}
         snapshot={snapshot}
+        canParticipate={canParticipate}
+        sessionUserId={session?.userId ?? null}
         onBack={() => setSelected(null)}
       />
     );
@@ -350,10 +386,14 @@ export function OfflineCatalog() {
 function OfflineDetail({
   item,
   snapshot,
+  canParticipate,
+  sessionUserId,
   onBack,
 }: {
   item: CatalogSearchItem;
   snapshot: CatalogSnapshot;
+  canParticipate: boolean;
+  sessionUserId: string | null;
   onBack: () => void;
 }) {
   const establishment = snapshot.establishments.find(
@@ -512,11 +552,31 @@ function OfflineDetail({
                       {review.comment}
                     </p>
                   ) : null}
+                  {canParticipate && sessionUserId ? (
+                    <OfflineReportForm
+                      userId={sessionUserId}
+                      reviewId={review.id}
+                    />
+                  ) : null}
                 </li>
               ))}
             </ul>
           )}
         </section>
+
+        {canParticipate && sessionUserId ? (
+          <OfflineReviewForm
+            userId={sessionUserId}
+            productId={item.id}
+            establishmentId={item.establishment_id}
+          />
+        ) : (
+          <p className="mt-8 max-w-[52ch] text-sm leading-relaxed text-carbon/65">
+            {sessionUserId
+              ? "Solo estudiantes institucionales de la UPTC pueden reseñar."
+              : "Inicia sesión con tu correo institucional para reseñar desde el modo sin conexión."}
+          </p>
+        )}
       </article>
     </div>
   );
