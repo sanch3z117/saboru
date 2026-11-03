@@ -1,7 +1,11 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import HomePage from "@/app/page";
+
+vi.mock("@/components/auth/session-menu", () => ({
+  SessionMenu: () => null,
+}));
 
 describe("HomePage", () => {
   it("presenta la propuesta y los tres criterios de búsqueda", () => {

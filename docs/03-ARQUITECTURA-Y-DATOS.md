@@ -488,6 +488,25 @@ order by distance_m asc, p.price_cop asc;
 - Guards de servidor: `requireUser()`, `requireRole('vendor')`, `requireRole('admin')`. La UI oculta acciones, pero la seguridad real es RLS + permisos de columna + RPC.
 - Tras el login, redirección por rol. Al cerrar sesión se limpian cachés y datos locales privados (ver `docs/04`).
 
+**Primer admin (manual):** registrarse con un correo institucional y luego, con `service_role` o el SQL editor:
+
+```sql
+update public.profiles set role = 'admin' where lower(email) = 'admin@uptc.edu.co';
+```
+
+**Invitación de prueba:** con un admin ya creado:
+
+```sql
+insert into public.vendor_invites (email, establishment_id, invited_by)
+select 'vendedor@example.com', e.id, p.id
+from public.establishments e, public.profiles p
+where e.slug = 'seed-comedor-la-cosecha'
+  and lower(p.email) = 'admin@uptc.edu.co'
+  and p.role = 'admin';
+```
+
+**Local:** los magic links llegan a Inbucket/Mailpit en `http://127.0.0.1:54324`. `.env.local` se genera desde `supabase status -o env` y no se versiona.
+
 ## Variables de entorno
 
 ```bash

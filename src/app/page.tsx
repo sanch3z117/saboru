@@ -1,4 +1,5 @@
 import { SaboruLogo } from "@/components/brand/saboru-logo";
+import { SessionMenu } from "@/components/auth/session-menu";
 
 const criteria = [
   {
@@ -20,7 +21,12 @@ export default function HomePage() {
     <div className="flex min-h-dvh flex-col">
       <header className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 pt-6 sm:px-8 sm:pt-8">
         <SaboruLogo className="h-11 w-auto sm:h-12" />
-        <span className="text-sm font-medium text-carbon/70">UPTC · Tunja</span>
+        <div className="flex items-center gap-4">
+          <span className="text-sm font-medium text-carbon/70">
+            UPTC · Tunja
+          </span>
+          <SessionMenu />
+        </div>
       </header>
 
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center px-5 py-12 sm:px-8 sm:py-16">

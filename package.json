@@ -19,6 +19,8 @@
   },
   "dependencies": {
     "@serwist/next": "9.5.13",
+    "@supabase/ssr": "0.12.7",
+    "@supabase/supabase-js": "2.118.0",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "lucide-react": "1.66.0",
@@ -26,7 +28,8 @@
     "react": "19.2.9",
     "react-dom": "19.2.9",
     "serwist": "9.5.13",
-    "tailwind-merge": "3.7.0"
+    "tailwind-merge": "3.7.0",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@eslint/eslintrc": "3.3.7",
