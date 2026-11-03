@@ -18,11 +18,15 @@ export async function logSearchEvent(params: {
 
   const supabase = await createClient();
   // Los tipos generados no reflejan null en argumentos, pero PostgREST lo acepta.
-  await supabase.rpc("log_search", {
-    p_budget: params.budget,
-    p_block_id: params.blockId,
-    p_category: params.category,
-  } as unknown as LogSearchArgs);
+  try {
+    await supabase.rpc("log_search", {
+      p_budget: params.budget,
+      p_block_id: params.blockId,
+      p_category: params.category,
+    } as unknown as LogSearchArgs);
+  } catch {
+    // Analítica best-effort: un fallo no debe tumbar la página.
+  }
 }
 
 export async function logProductView(productId: string) {
@@ -31,5 +35,9 @@ export async function logProductView(productId: string) {
   if (!success) return;
 
   const supabase = await createClient();
-  await supabase.rpc("log_product_view", { p_product_id: productId });
+  try {
+    await supabase.rpc("log_product_view", { p_product_id: productId });
+  } catch {
+    // Analítica best-effort: un fallo no debe tumbar la página.
+  }
 }

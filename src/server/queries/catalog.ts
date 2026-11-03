@@ -1,5 +1,7 @@
 import "server-only";
 
+import { createHash } from "node:crypto";
+
 import type { WeeklySchedule } from "@/lib/catalog/schedule";
 import type { CatalogSearchItem } from "@/lib/catalog/search";
 import { createClient } from "@/lib/supabase/server";
@@ -26,6 +28,13 @@ type SearchRpcArgs = Database["public"]["Functions"]["search_products"]["Args"];
 function unwrap<T>(result: { data: T; error: { message: string } | null }): T {
   if (result.error) throw new Error(result.error.message);
   return result.data;
+}
+
+function hashSnapshot(payload: unknown) {
+  return createHash("sha256")
+    .update(JSON.stringify(payload))
+    .digest("hex")
+    .slice(0, 16);
 }
 
 export async function getBlocks(): Promise<BlockRow[]> {
@@ -219,21 +228,30 @@ export async function getCatalogSnapshot() {
       "id, establishment_id, name, description, price_cop, category, photo_url, available, allergens",
     )
     .eq("available", true)
-    .order("name");
-  const statsResult = await supabase.from("product_stats").select("*");
+    .order("name")
+    .order("id");
+  const statsResult = await supabase
+    .from("product_stats")
+    .select("*")
+    .order("product_id");
   const reviewsResult = await supabase
     .from("public_reviews")
     .select("*")
     .order("created_at", { ascending: false })
+    .order("id")
     .limit(200);
 
-  return {
-    version: "1",
-    generated_at: new Date().toISOString(),
+  const payload = {
     blocks: unwrap(blocksResult) ?? [],
     establishments: unwrap(establishmentsResult) ?? [],
     products: unwrap(productsResult) ?? [],
     product_stats: unwrap(statsResult) ?? [],
     reviews: unwrap(reviewsResult) ?? [],
+  };
+
+  return {
+    version: hashSnapshot(payload),
+    generated_at: new Date().toISOString(),
+    ...payload,
   };
 }

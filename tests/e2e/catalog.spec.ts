@@ -253,7 +253,7 @@ test.describe("catálogo", () => {
       products: unknown[];
     };
 
-    expect(body.version).toBe("1");
+    expect(body.version).toMatch(/^[a-f0-9]{16}$/);
     expect(typeof body.generated_at).toBe("string");
     expect(body.blocks.length).toBeGreaterThanOrEqual(6);
     expect(body.establishments.length).toBeGreaterThanOrEqual(7);
@@ -263,5 +263,26 @@ test.describe("catálogo", () => {
     const raw = JSON.stringify(body);
     expect(raw).not.toContain("owner_id");
     expect(raw).not.toContain("user_id");
+
+    const fixture = await createFixture({ open: true });
+
+    try {
+      const before = await request.get("/api/catalog/snapshot");
+      const beforeBody = (await before.json()) as { version: string };
+
+      await withDb(async (client) => {
+        await client.query(
+          "update public.products set name = $1 where id = $2",
+          [`Cambiado ${fixture.cheapId}`, fixture.cheapId],
+        );
+      });
+
+      const after = await request.get("/api/catalog/snapshot");
+      const afterBody = (await after.json()) as { version: string };
+
+      expect(afterBody.version).not.toBe(beforeBody.version);
+    } finally {
+      await deleteFixture(fixture.establishmentId);
+    }
   });
 });
