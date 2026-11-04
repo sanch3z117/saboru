@@ -48,7 +48,7 @@ No definir `RATE_LIMIT_DISABLED` ni `E2E_SW_TEST` en producción. `/api/e2e/sw-t
 ## Auth y SMTP
 
 - Site URL: `https://saboru.vercel.app`.
-- Redirect URLs: `https://saboru.vercel.app/auth/callback`, `https://saboru-bross7.vercel.app/auth/callback` y el comodín `https://*-bross7.vercel.app/**` para previews/demo.
+- Redirect URLs: `https://saboru.vercel.app/auth/callback`, `https://saboru-bross7.vercel.app/auth/callback` y el comodín `https://saboru-*-bross7.vercel.app/**` para previews/demo.
 - SMTP propio activado en Supabase Auth con Brevo (`smtp-relay.brevo.com:587`).
 - El remitente es una dirección de Gmail ya verificada en Brevo. `uptc.edu.co` no se pudo usar como remitente porque su política DMARC exige autenticación de dominio por DNS; la cuenta admin sigue siendo institucional.
 - Brevo aceptó un envío de prueba al buzón admin. La entrega final se confirma revisando la bandeja y la carpeta de spam.
