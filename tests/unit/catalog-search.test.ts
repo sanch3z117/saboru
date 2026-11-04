@@ -5,6 +5,7 @@ import {
   filterCatalog,
   paginate,
   searchCatalog,
+  type CatalogFilters,
   type CatalogSearchItem,
 } from "@/lib/catalog/search";
 
@@ -29,6 +30,13 @@ function item(overrides: Partial<CatalogSearchItem> = {}): CatalogSearchItem {
 
 const weekdaySchedule: WeeklySchedule = {
   mon: [["08:00", "17:00"]],
+};
+
+const baseFilters: CatalogFilters = {
+  budget: null,
+  category: null,
+  maxDistanceM: null,
+  openNow: false,
 };
 
 describe("isOpenAt", () => {
@@ -105,14 +113,106 @@ describe("searchCatalog", () => {
       item({ id: "lejos", distance_m: 500, price_cop: 1000 }),
     ];
 
+    expect(searchCatalog(items, baseFilters).map((row) => row.id)).toEqual([
+      "barato-cerca",
+      "caro-cerca",
+      "lejos",
+    ]);
+  });
+
+  it("busca texto en producto, descripción, local y categoría sin acentos", () => {
+    const items = [
+      item({
+        id: "arepa",
+        name: "Arepa de queso",
+        description: "Recién hecha",
+        establishment_name: "Arepas del Bloque",
+        category: "fritos",
+      }),
+      item({
+        id: "cafe",
+        name: "Café americano",
+        description: "Bebida caliente",
+        establishment_name: "Café Biblioteca",
+        establishment_description: "Para estudiar",
+        category: "bebidas",
+      }),
+      item({
+        id: "almuerzo",
+        name: "Almuerzo del día",
+        description: "Sopa y seco",
+        establishment_name: "Comedor",
+        establishment_description: "Cocina de la abuela",
+        category: "almuerzos",
+      }),
+    ];
+
+    expect(
+      searchCatalog(items, { ...baseFilters, q: "arepa" }).map((row) => row.id),
+    ).toEqual(["arepa"]);
+    expect(
+      searchCatalog(items, { ...baseFilters, q: "cafe" }).map((row) => row.id),
+    ).toEqual(["cafe"]);
+    expect(
+      searchCatalog(items, { ...baseFilters, q: "abuela" }).map(
+        (row) => row.id,
+      ),
+    ).toEqual(["almuerzo"]);
+    expect(
+      searchCatalog(items, { ...baseFilters, q: "bebidas" }).map(
+        (row) => row.id,
+      ),
+    ).toEqual(["cafe"]);
+    expect(
+      searchCatalog(items, { ...baseFilters, q: "sopa seco" }).map(
+        (row) => row.id,
+      ),
+    ).toEqual(["almuerzo"]);
+  });
+
+  it("recalcula la distancia desde el origen si el ítem trae coordenadas", () => {
+    const origin = { latitude: 5.552, longitude: -73.3567 };
+    const items = [
+      item({
+        id: "cerca",
+        distance_m: 9999,
+        establishment_latitude: 5.552,
+        establishment_longitude: -73.3567,
+      }),
+      item({
+        id: "lejos",
+        distance_m: 1,
+        establishment_latitude: 5.56,
+        establishment_longitude: -73.3567,
+      }),
+    ];
+
     expect(
       searchCatalog(items, {
-        budget: null,
-        category: null,
-        maxDistanceM: null,
-        openNow: false,
+        ...baseFilters,
+        maxDistanceM: 100,
+        origin,
       }).map((row) => row.id),
-    ).toEqual(["barato-cerca", "caro-cerca", "lejos"]);
+    ).toEqual(["cerca"]);
+  });
+
+  it("ordena por precio y por rating del local, con nulos al final", () => {
+    const items = [
+      item({ id: "medio", price_cop: 8000, establishment_rating: 3.8 }),
+      item({ id: "caro", price_cop: 12000, establishment_rating: null }),
+      item({ id: "barato", price_cop: 5000, establishment_rating: 4.6 }),
+    ];
+
+    expect(
+      searchCatalog(items, { ...baseFilters, order: "price" }).map(
+        (row) => row.id,
+      ),
+    ).toEqual(["barato", "medio", "caro"]);
+    expect(
+      searchCatalog(items, { ...baseFilters, order: "rating" }).map(
+        (row) => row.id,
+      ),
+    ).toEqual(["barato", "medio", "caro"]);
   });
 });
 

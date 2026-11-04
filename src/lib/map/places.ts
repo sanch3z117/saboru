@@ -1,5 +1,7 @@
 import { distanceMeters, type Coordinates } from "@/lib/catalog/distance";
-import type { CatalogSnapshot, ProductStatsRow } from "@/types/catalog";
+import { aggregateEstablishmentRating } from "@/lib/catalog/rating";
+import type { CatalogSearchItem } from "@/lib/catalog/search";
+import type { CatalogSnapshot } from "@/types/catalog";
 
 import {
   CAMPUS_BOUNDS_PADDING,
@@ -21,6 +23,11 @@ export type MapPlace = {
   rating: number | null;
   reviewCount: number;
   distanceMeters: number;
+};
+
+export type SearchPlaceGroup = {
+  place: MapPlace;
+  items: CatalogSearchItem[];
 };
 
 type BlockPoint = {
@@ -67,48 +74,9 @@ export function campusBoundsFromBlocks(
   ];
 }
 
-function statsForEstablishment(
-  stats: readonly ProductStatsRow[],
-  productIds: ReadonlySet<string>,
-) {
-  let reviewCount = 0;
-  let weightedTotal = 0;
-
-  for (const stat of stats) {
-    if (!productIds.has(stat.product_id)) continue;
-
-    const count = stat.review_count ?? 0;
-    if (count <= 0) continue;
-
-    const criteria = [
-      stat.avg_sabor,
-      stat.avg_cantidad,
-      stat.avg_precio,
-      stat.avg_presentacion,
-      stat.avg_calidad_precio,
-    ].filter((value): value is number => typeof value === "number");
-
-    if (criteria.length === 0) continue;
-
-    const productAverage =
-      criteria.reduce((sum, value) => sum + value, 0) / criteria.length;
-    weightedTotal += productAverage * count;
-    reviewCount += count;
-  }
-
-  return {
-    rating:
-      reviewCount > 0
-        ? Math.round((weightedTotal / reviewCount) * 10) / 10
-        : null,
-    reviewCount,
-  };
-}
-
 /**
  * Convierte el snapshot público en los lugares del mapa. Es una función pura:
- * el mapa, la lista y (en 7.5.2) la búsqueda usan el mismo dato y la misma
- * distancia haversine.
+ * rating, precio y distancia salen de las mismas reglas que la lista.
  */
 export function placesFromSnapshot(
   snapshot: CatalogSnapshot,
@@ -141,7 +109,7 @@ export function placesFromSnapshot(
 
       const products = productsByEstablishment.get(establishment.id) ?? [];
       const productIds = new Set(products.map((product) => product.id));
-      const { rating, reviewCount } = statsForEstablishment(
+      const aggregate = aggregateEstablishmentRating(
         snapshot.product_stats,
         productIds,
       );
@@ -160,8 +128,8 @@ export function placesFromSnapshot(
             products.length > 0
               ? Math.min(...products.map((product) => product.price))
               : null,
-          rating,
-          reviewCount,
+          rating: aggregate.rating,
+          reviewCount: aggregate.reviewCount,
           distanceMeters: distanceMeters(origin, {
             latitude,
             longitude,
@@ -170,4 +138,79 @@ export function placesFromSnapshot(
       ];
     })
     .sort((a, b) => a.name.localeCompare(b.name, "es"));
+}
+
+/**
+ * Agrupa los productos filtrados por local. El orden de los grupos sigue el
+ * orden de los resultados (distancia, precio o rating), y el precio mostrado es
+ * el mínimo de los productos que coinciden con los filtros.
+ */
+export function groupSearchItemsByPlace(
+  snapshot: Pick<CatalogSnapshot, "establishments">,
+  items: readonly CatalogSearchItem[],
+): SearchPlaceGroup[] {
+  const establishments = new Map(
+    snapshot.establishments.map((establishment) => [
+      establishment.id,
+      establishment,
+    ]),
+  );
+  const groups = new Map<string, SearchPlaceGroup>();
+
+  for (const item of items) {
+    const existing = groups.get(item.establishment_id);
+    if (existing) {
+      existing.items.push(item);
+      existing.place.priceFromCop = Math.min(
+        existing.place.priceFromCop ?? item.price_cop,
+        item.price_cop,
+      );
+      existing.place.distanceMeters = Math.min(
+        existing.place.distanceMeters,
+        item.distance_m,
+      );
+      continue;
+    }
+
+    const establishment = establishments.get(item.establishment_id);
+    const latitude = establishment?.latitude ?? item.establishment_latitude;
+    const longitude = establishment?.longitude ?? item.establishment_longitude;
+
+    if (
+      latitude === null ||
+      longitude === null ||
+      latitude === undefined ||
+      longitude === undefined ||
+      !isValidCoordinate(latitude, longitude)
+    ) {
+      continue;
+    }
+
+    groups.set(item.establishment_id, {
+      place: {
+        id: item.establishment_id,
+        slug: item.establishment_slug,
+        name: item.establishment_name,
+        category: establishment?.category ?? item.category,
+        plan: establishment?.plan ?? "basic",
+        latitude,
+        longitude,
+        photoPath: establishment?.photos?.[0] ?? null,
+        priceFromCop: item.price_cop,
+        rating: item.establishment_rating ?? null,
+        reviewCount: item.establishment_review_count ?? 0,
+        distanceMeters: item.distance_m,
+      },
+      items: [item],
+    });
+  }
+
+  return [...groups.values()];
+}
+
+export function placesForSearchItems(
+  snapshot: Pick<CatalogSnapshot, "establishments">,
+  items: readonly CatalogSearchItem[],
+) {
+  return groupSearchItemsByPlace(snapshot, items).map((group) => group.place);
 }

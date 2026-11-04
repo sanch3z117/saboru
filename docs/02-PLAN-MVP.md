@@ -111,7 +111,18 @@ Detalle en `docs/04-OFFLINE-PWA.md`. Subpasos:
 
 Commit: `feat(admin): moderacion, planes manuales y pulido`
 
-### Fase 8 — Despliegue
+### Fase 7.5 — Rediseño map-first (en curso)
+
+Insertada antes de Fase 8. Detalle de dirección visual en `docs/05` y de datos en `docs/03`.
+
+- **7.5.0 Fundación de diseño** — hecho: skill `frontend-design` local, tokens, primitivas, logo y helper de fotos. Commit: `chore(design): instalar frontend-design y sistema visual`
+- **7.5.1 Mapa base y ubicación** — hecho: MapLibre 6.16.0, MapTiler/OSM, Pin-U, geolocalización y fallback. Commit: `feat(map): mapa del campus y ubicacion`
+- **7.5.2 Descubrimiento map-first** — `DiscoverySurface` compartida por `/` y `/buscar`, búsqueda por texto, chips, URL compartible, mapa controlado, lista agrupada y sheet móvil; snapshot público sin RPC nuevo. Commit: `feat(catalog): descubrimiento con mapa y busqueda`
+- **7.5.3 Cartelera y fichas** — pendiente (cards con foto, fichas, formulario de estrellas y fotos demo).
+- **7.5.4 Navegación y estados** — pendiente (header/footer globales, auth, offline y errores con marca).
+- **7.5.5 Demo y QA** — pendiente (E2E finales, capturas, Lighthouse y cierre).
+
+### Fase 8 - Despliegue
 
 - Aplicar migraciones al Supabase remoto (con confirmación manual).
 - Desplegar en Vercel con variables de producción (incluidas las de Upstash).
@@ -128,7 +139,8 @@ Commit: `chore: deploy en vercel y smoke test`
 
 - Promedios por criterio y general.
 - `isOpenNow`: horarios normales, cruce de medianoche y día cerrado.
-- Búsqueda pura del catálogo y distancia.
+- Búsqueda pura del catálogo y distancia, texto (`q`), origen y orden.
+- Rating agregado por local con mínimo de 5 reseñas y filtros de URL del descubrimiento.
 - Validaciones Zod (establecimientos, productos, reseñas, operaciones de sync).
 - Regla de 30 días y formato de precios COP.
 - Outbox, limpieza y lista de exclusión del service worker (con `fake-indexeddb`).
@@ -151,6 +163,7 @@ Ocho flujos obligatorios, los mismos criterios de aceptación de `docs/01`:
 6. **Sin sesión:** navega el catálogo pero no puede reseñar.
 7. **Offline, lectura y escritura:** búsqueda y ficha sin red; reseña pendiente que se publica al volver la red.
 8. **Offline, privacidad:** al cerrar sesión no quedan datos privados locales.
+9. **Descubrimiento:** texto y chips actualizan mapa y lista; la URL conserva filtros; vacío, denegación, offline y sheet móvil cubiertos.
 
 ### Comandos
 

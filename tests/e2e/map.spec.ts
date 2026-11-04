@@ -45,17 +45,17 @@ async function mockMapNetwork(page: Page) {
 
 async function expectSeedMarkers(page: Page) {
   for (const name of SEED_NAMES) {
-    await expect(page.getByRole("button", { name: `Ver ${name}` })).toBeVisible(
-      { timeout: 30_000 },
-    );
+    await expect(
+      page.getByRole("button", { name: `Ver ${name}`, exact: true }),
+    ).toBeVisible({ timeout: 30_000 });
   }
   await expect(page.getByTestId("map-block-label")).toHaveCount(6);
 }
 
 test.describe("mapa del campus", () => {
-  test("muestra los 7 locales, 6 bloques y la ficha rápida", async ({
+  test("muestra los 7 locales, 6 bloques y sincroniza la selección", async ({
     page,
-  }) => {
+  }, testInfo) => {
     const cspErrors: string[] = [];
     const pageErrors: string[] = [];
     page.on("console", (message) => {
@@ -75,17 +75,23 @@ test.describe("mapa del campus", () => {
     await expect(page.getByTestId("map-fallback")).toHaveCount(0);
 
     await page
-      .getByRole("button", { name: "Ver Food Truck Administrativo" })
+      .getByRole("button", {
+        name: "Ver Food Truck Administrativo",
+        exact: true,
+      })
       .click();
-    const popup = page.getByTestId("map-popup");
-    await expect(popup).toBeVisible();
-    await expect(popup.getByText("Food Truck Administrativo")).toBeVisible();
-    await expect(
-      popup.getByRole("link", { name: "Ver ficha" }),
-    ).toHaveAttribute(
-      "href",
-      "/establecimiento/seed-food-truck-administrativo",
-    );
+
+    if (testInfo.project.name === "mobile") {
+      await expect(page.getByTestId("discovery-sheet")).toContainText(
+        "Food Truck Administrativo",
+      );
+    } else {
+      await expect(
+        page.getByRole("button", {
+          name: "Ver Food Truck Administrativo en el mapa",
+        }),
+      ).toHaveAttribute("aria-pressed", "true");
+    }
 
     expect(pageErrors).toEqual([]);
     expect(cspErrors).toEqual([]);
@@ -138,7 +144,7 @@ test.describe("mapa del campus", () => {
     await expectSeedMarkers(page);
     await page.getByRole("button", { name: "Usar mi ubicación" }).click();
 
-    await expect(page.getByText(/Usando el centro del campus/)).toBeVisible();
+    await expect(page.getByText(/Usando .* como referencia/)).toBeVisible();
     await expect(page.getByTestId("map-user-marker")).toHaveCount(0);
   });
 
@@ -161,9 +167,9 @@ test.describe("mapa del campus", () => {
       fallback.getByRole("button", { name: "Reintentar" }),
     ).toBeVisible();
 
-    const list = page.getByTestId("map-place-list");
-    for (const name of SEED_NAMES) {
-      await expect(list.getByRole("link", { name })).toBeVisible();
-    }
+    await expect(page.getByTestId("discovery-count")).toContainText("locales");
+    await expect(
+      page.getByRole("link", { name: "Sopa del día" }),
+    ).toBeVisible();
   });
 });

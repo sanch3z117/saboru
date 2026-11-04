@@ -105,19 +105,21 @@ async function productHrefs(page: import("@playwright/test").Page) {
 }
 
 test.describe("catálogo", () => {
-  test("la home muestra el buscador y Destacado separado", async ({ page }) => {
+  test("la home muestra el descubrimiento y Destacado separado", async ({
+    page,
+  }) => {
     await page.goto("/");
 
     await expect(
-      page.getByRole("heading", {
-        name: "Busca por presupuesto y cercanía",
-      }),
+      page.getByRole("searchbox", { name: "Buscar en el catálogo" }),
     ).toBeVisible();
     await expect(
       page.getByRole("heading", { name: /^Destacado$/ }),
     ).toBeVisible();
     await expect(
-      page.getByRole("link", { name: "Café Biblioteca" }),
+      page
+        .locator('section[aria-labelledby="destacado"]')
+        .getByRole("link", { name: "Café Biblioteca" }),
     ).toBeVisible();
   });
 
@@ -150,7 +152,9 @@ test.describe("catálogo", () => {
   test("muestra el estado vacío sin resultados", async ({ page }) => {
     await page.goto(`/buscar?bloque=${BLOCK_CENTRAL}&presupuesto=1`);
 
-    await expect(page.getByText("No encontramos productos")).toBeVisible();
+    await expect(page.getByTestId("discovery-empty")).toContainText(
+      "No encontramos resultados",
+    );
   });
 
   test("la ficha de establecimiento muestra productos y reseñas", async ({
@@ -227,6 +231,9 @@ test.describe("catálogo", () => {
       });
 
       await page.reload();
+      await expect(
+        page.getByRole("link", { name: open.cheapName }),
+      ).toBeVisible();
       expect(await productHrefs(page)).toEqual(before);
 
       await expect(

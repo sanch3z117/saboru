@@ -7,19 +7,16 @@ vi.mock("@/components/auth/session-menu", () => ({
   SessionMenu: () => null,
 }));
 
-vi.mock("@/components/map/campus-map-section", () => ({
-  CampusMapSection: () => null,
+vi.mock("@/components/discovery/discovery-surface", () => ({
+  DiscoverySurface: () => <div data-testid="discovery-surface" />,
 }));
 
 vi.mock("@/server/queries/catalog", () => ({
-  getBlocks: async () => [{ id: "block-1", name: "Bloque Central" }],
-  getCategories: async () => ["almuerzos"],
-  getDefaultBlock: async () => ({ id: "block-1", name: "Bloque Central" }),
   getFeaturedEstablishments: async () => [],
 }));
 
 describe("HomePage", () => {
-  it("presenta la propuesta, el buscador y la sección Destacado", async () => {
+  it("presenta la propuesta, el descubrimiento y la sección Destacado", async () => {
     render(await HomePage());
 
     expect(
@@ -29,15 +26,7 @@ describe("HomePage", () => {
       }),
     ).toBeInTheDocument();
 
-    expect(
-      screen.getByRole("heading", {
-        name: /busca por presupuesto y cercanía/i,
-      }),
-    ).toBeInTheDocument();
-
-    expect(
-      screen.getByRole("spinbutton", { name: "Presupuesto (COP)" }),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId("discovery-surface")).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: /destacado/i }),
     ).toBeInTheDocument();

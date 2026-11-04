@@ -4,18 +4,13 @@ import {
   getVersion,
   Map as MapLibreMap,
   Marker,
-  Popup,
   setWorkerUrl,
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { flushSync } from "react-dom";
-import { createRoot, type Root } from "react-dom/client";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-import { Alert } from "@/components/ui/alert";
-import { useGeolocation } from "@/hooks/use-geolocation";
+import type { Coordinates } from "@/lib/catalog/distance";
 import {
-  CAMPUS_CENTER,
   CAMPUS_DEFAULT_ZOOM,
   CAMPUS_MAX_ZOOM,
   CAMPUS_MIN_ZOOM,
@@ -23,13 +18,8 @@ import {
   MAPLIBRE_WORKER_PATH,
   mapStyleFor,
 } from "@/lib/map/config";
-import {
-  campusBoundsFromBlocks,
-  placesFromSnapshot,
-  type MapPlace,
-} from "@/lib/map/places";
-import type { CatalogSnapshot } from "@/types/catalog";
-import { cn } from "@/lib/utils";
+import { campusBoundsFromBlocks, type MapPlace } from "@/lib/map/places";
+import type { SnapshotBlock } from "@/types/catalog";
 
 import { MapControls } from "./map-controls";
 import { MapFallback } from "./map-fallback";
@@ -40,116 +30,56 @@ import {
   createUserMarkerElement,
   setPlaceMarkerSelected,
 } from "./map-marker";
-import { MapPlaceList } from "./map-place-list";
-import { MapPopup } from "./map-popup";
 import { MapSkeleton } from "./map-skeleton";
 
 // El worker se sirve desde `public/` para que `worker-src 'self'` baste y no
 // dependa de la detección automática de workers del bundler.
 setWorkerUrl(`${MAPLIBRE_WORKER_PATH}?v=${getVersion()}`);
 
-const GEOLOCATION_OPTIONS: PositionOptions = {
-  enableHighAccuracy: true,
-  timeout: 8000,
-  maximumAge: 60_000,
-};
-
 type MapStatus = "loading" | "ready" | "error";
 
-function isCatalogSnapshot(value: unknown): value is CatalogSnapshot {
-  if (!value || typeof value !== "object") return false;
-  const snapshot = value as Partial<CatalogSnapshot>;
-  return (
-    Array.isArray(snapshot.blocks) &&
-    Array.isArray(snapshot.establishments) &&
-    Array.isArray(snapshot.products) &&
-    Array.isArray(snapshot.product_stats) &&
-    Array.isArray(snapshot.reviews)
-  );
-}
+export type CampusMapProps = {
+  places: readonly MapPlace[];
+  blocks: readonly SnapshotBlock[];
+  origin: Coordinates;
+  userPosition: Coordinates | null;
+  selectedId: string | null;
+  onSelect: (placeId: string | null) => void;
+  onLocate: () => void;
+  locating: boolean;
+  describedBy?: string;
+};
 
-export function CampusMap() {
+export function CampusMap({
+  places,
+  blocks,
+  origin,
+  userPosition,
+  selectedId,
+  onSelect,
+  onLocate,
+  locating,
+  describedBy,
+}: CampusMapProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const markersRef = useRef<Marker[]>([]);
   const blockMarkersRef = useRef<Marker[]>([]);
   const userMarkerRef = useRef<Marker | null>(null);
-  const popupRef = useRef<Popup | null>(null);
-  const popupRootRef = useRef<Root | null>(null);
+  const onSelectRef = useRef(onSelect);
+  const initialOriginRef = useRef(origin);
 
   const [status, setStatus] = useState<MapStatus>("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [snapshot, setSnapshot] = useState<CatalogSnapshot | null>(null);
-  const [snapshotError, setSnapshotError] = useState<string | null>(null);
   const [mapReady, setMapReady] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
 
-  const geolocation = useGeolocation(GEOLOCATION_OPTIONS);
-  const origin = geolocation.position ?? CAMPUS_CENTER;
   const styleConfig = useMemo(() => mapStyleFor(), []);
 
-  const places = useMemo(
-    () => (snapshot ? placesFromSnapshot(snapshot, origin) : []),
-    [snapshot, origin],
-  );
-
-  const closePopup = useCallback(() => {
-    const popup = popupRef.current;
-    if (!popup) {
-      setSelectedId(null);
-      return;
-    }
-    popup.remove();
-  }, []);
-
-  // Descarga del snapshot público. El mapa no usa IndexedDB ni el snapshot
-  // offline: si no hay red, se muestra la lista y el aviso.
   useEffect(() => {
-    let active = true;
-    const controller = new AbortController();
+    onSelectRef.current = onSelect;
+  }, [onSelect]);
 
-    setSnapshot(null);
-    setSnapshotError(null);
-
-    if (typeof navigator !== "undefined" && !navigator.onLine) {
-      setSnapshotError("Sin conexión. El mapa necesita internet.");
-      setStatus("error");
-      setErrorMessage("Sin conexión. El mapa necesita internet.");
-      return () => {
-        active = false;
-        controller.abort();
-      };
-    }
-
-    fetch("/api/catalog/snapshot", {
-      signal: controller.signal,
-      cache: "no-store",
-    })
-      .then(async (response) => {
-        if (!response.ok) throw new Error("snapshot");
-        const data: unknown = await response.json();
-        if (!isCatalogSnapshot(data)) throw new Error("snapshot-format");
-        if (!active) return;
-        setSnapshot(data);
-      })
-      .catch((error: unknown) => {
-        if (!active) return;
-        if (error instanceof DOMException && error.name === "AbortError")
-          return;
-        setSnapshotError("No pudimos cargar los locales del campus.");
-        setStatus("error");
-        setErrorMessage("No pudimos cargar los locales del campus.");
-      });
-
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, [attempt]);
-
-  // Inicializa MapLibre una vez por intento. El componente solo se carga con
-  // `dynamic(..., { ssr: false })`.
   useEffect(() => {
     const container = mapContainerRef.current;
     if (!container) return;
@@ -163,7 +93,6 @@ export function CampusMap() {
     setStatus("loading");
     setErrorMessage(null);
     setMapReady(false);
-    setSelectedId(null);
 
     let removed = false;
     let loaded = false;
@@ -172,7 +101,10 @@ export function CampusMap() {
     const map = new MapLibreMap({
       container,
       style: styleConfig.style,
-      center: [CAMPUS_CENTER.longitude, CAMPUS_CENTER.latitude],
+      center: [
+        initialOriginRef.current.longitude,
+        initialOriginRef.current.latitude,
+      ],
       zoom: CAMPUS_DEFAULT_ZOOM,
       minZoom: CAMPUS_MIN_ZOOM,
       maxZoom: CAMPUS_MAX_ZOOM,
@@ -186,6 +118,7 @@ export function CampusMap() {
       touchPitch: false,
       locale: {
         "Popup.Close": "Cerrar",
+        "Map.Title": "Mapa del campus",
       },
     });
 
@@ -195,7 +128,6 @@ export function CampusMap() {
     const fail = (message: string) => {
       if (removed) return;
       removed = true;
-      closePopup();
       markersRef.current = [];
       blockMarkersRef.current = [];
       userMarkerRef.current = null;
@@ -242,10 +174,13 @@ export function CampusMap() {
       window.clearTimeout(tilesTimeout);
     });
 
+    map.on("click", () => {
+      onSelectRef.current(null);
+    });
+
     return () => {
       window.clearTimeout(loadTimeout);
       window.clearTimeout(tilesTimeout);
-      closePopup();
       markersRef.current = [];
       blockMarkersRef.current = [];
       userMarkerRef.current = null;
@@ -258,27 +193,25 @@ export function CampusMap() {
         }
       }
     };
-  }, [attempt, closePopup, styleConfig]);
+  }, [attempt, styleConfig]);
 
-  // Ajusta los bounds reales cuando llega el snapshot (6 bloques).
+  // Ajusta los bounds reales y dibuja las etiquetas de los 6 bloques.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapReady || !snapshot) return;
-    const bounds = campusBoundsFromBlocks(snapshot.blocks);
+    if (!map || !mapReady) return;
+
+    for (const marker of blockMarkersRef.current) marker.remove();
+    blockMarkersRef.current = [];
+
+    const bounds = campusBoundsFromBlocks(blocks);
     map.setMaxBounds(bounds);
     map.fitBounds(bounds, {
       padding: 28,
       duration: 0,
       maxZoom: CAMPUS_DEFAULT_ZOOM,
     });
-  }, [mapReady, snapshot]);
 
-  // Etiquetas de los bloques del campus.
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !mapReady || !snapshot) return;
-
-    for (const block of snapshot.blocks) {
+    for (const block of blocks) {
       if (block.latitude === null || block.longitude === null) continue;
       const marker = new Marker({
         element: createBlockLabelElement(block.name),
@@ -294,53 +227,9 @@ export function CampusMap() {
       for (const marker of blockMarkersRef.current) marker.remove();
       blockMarkersRef.current = [];
     };
-  }, [mapReady, snapshot]);
+  }, [blocks, mapReady]);
 
-  const openPopup = useCallback((place: MapPlace) => {
-    const map = mapRef.current;
-    if (!map) return;
-
-    popupRef.current?.remove();
-
-    const container = document.createElement("div");
-    const root = createRoot(container);
-    // MapLibre decide el anchor con la altura del contenido; si se añade vacío
-    // el popup queda debajo del marcador y se recorta con el marco del mapa.
-    flushSync(() => {
-      root.render(<MapPopup place={place} />);
-    });
-
-    const popup = new Popup({
-      closeButton: true,
-      closeOnClick: true,
-      maxWidth: "320px",
-      className: "saboru-map-popup",
-      offset: 20,
-      padding: { top: 20, right: 0, bottom: 20, left: 0 },
-    })
-      .setLngLat([place.longitude, place.latitude])
-      .setDOMContent(container)
-      .addTo(map);
-
-    popupRef.current = popup;
-    popupRootRef.current = root;
-    setSelectedId(place.id);
-
-    map.easeTo({
-      center: [place.longitude, place.latitude],
-      duration: 300,
-    });
-
-    popup.on("close", () => {
-      popupRef.current = null;
-      const currentRoot = popupRootRef.current;
-      popupRootRef.current = null;
-      if (currentRoot) currentRoot.unmount();
-      setSelectedId(null);
-    });
-  }, []);
-
-  // Marcadores Pin-U de los establecimientos.
+  // Marcadores Pin-U de los locales filtrados.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
@@ -352,7 +241,7 @@ export function CampusMap() {
       const element = createPlaceMarkerElement(place);
       element.addEventListener("click", (event) => {
         event.stopPropagation();
-        openPopup(place);
+        onSelectRef.current(place.id);
       });
       const marker = new Marker({
         element,
@@ -368,7 +257,7 @@ export function CampusMap() {
       for (const marker of markersRef.current) marker.remove();
       markersRef.current = [];
     };
-  }, [mapReady, places, openPopup]);
+  }, [mapReady, places]);
 
   useEffect(() => {
     for (const marker of markersRef.current) {
@@ -377,14 +266,23 @@ export function CampusMap() {
       if (!id) continue;
       setPlaceMarkerSelected(element, id === selectedId);
     }
-  }, [places, selectedId]);
 
-  // Punto del usuario, solo después de pulsar “Usar mi ubicación”.
+    const map = mapRef.current;
+    const selected = places.find((place) => place.id === selectedId);
+    if (map && mapReady && selected) {
+      map.easeTo({
+        center: [selected.longitude, selected.latitude],
+        duration: 300,
+      });
+    }
+  }, [mapReady, places, selectedId]);
+
+  // Punto del usuario, solo si la superficie ya obtuvo una posición real.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
 
-    if (!geolocation.position) {
+    if (!userPosition) {
       userMarkerRef.current?.remove();
       userMarkerRef.current = null;
       return;
@@ -392,16 +290,13 @@ export function CampusMap() {
 
     const element = createUserMarkerElement();
     const marker = new Marker({ element, anchor: "center" })
-      .setLngLat([
-        geolocation.position.longitude,
-        geolocation.position.latitude,
-      ])
+      .setLngLat([userPosition.longitude, userPosition.latitude])
       .addTo(map);
     userMarkerRef.current?.remove();
     userMarkerRef.current = marker;
 
     map.easeTo({
-      center: [geolocation.position.longitude, geolocation.position.latitude],
+      center: [userPosition.longitude, userPosition.latitude],
       zoom: Math.max(map.getZoom(), 16.2),
       duration: 600,
     });
@@ -410,7 +305,7 @@ export function CampusMap() {
       marker.remove();
       if (userMarkerRef.current === marker) userMarkerRef.current = null;
     };
-  }, [geolocation.position, mapReady]);
+  }, [mapReady, userPosition]);
 
   useEffect(() => {
     const handleOffline = () => {
@@ -423,73 +318,42 @@ export function CampusMap() {
     return () => window.removeEventListener("offline", handleOffline);
   }, []);
 
-  const locating = geolocation.status === "locating";
-  const locationMessage =
-    geolocation.status === "denied" ||
-    geolocation.status === "unavailable" ||
-    geolocation.status === "timeout" ||
-    geolocation.status === "unsupported";
-
   return (
-    <div>
+    <div className={MAP_FRAME_CLASS} aria-busy={status === "loading"}>
       <div
-        className={cn(MAP_FRAME_CLASS, "mt-4")}
-        aria-busy={status === "loading"}
-      >
-        <div
-          ref={mapContainerRef}
-          data-testid="campus-map"
-          role="region"
-          aria-label="Mapa interactivo del campus"
-          aria-describedby={places.length > 0 ? "mapa-lista" : undefined}
-          className="h-full w-full"
+        ref={mapContainerRef}
+        data-testid="campus-map"
+        role="region"
+        aria-label="Mapa interactivo del campus"
+        aria-describedby={describedBy}
+        className="h-full w-full"
+      />
+
+      {status === "loading" ? <MapSkeleton overlay /> : null}
+
+      {status === "error" ? (
+        <MapFallback
+          message={errorMessage ?? "No pudimos cargar el mapa en este momento."}
+          provider={styleConfig.provider}
+          onRetry={() => setAttempt((value) => value + 1)}
         />
-
-        {status === "loading" ? <MapSkeleton overlay /> : null}
-
-        {status === "error" ? (
-          <MapFallback
-            message={
-              errorMessage ??
-              snapshotError ??
-              "No pudimos cargar el mapa en este momento."
-            }
-            provider={styleConfig.provider}
-            onRetry={() => setAttempt((value) => value + 1)}
-          />
-        ) : null}
-
-        {status === "ready" ? (
-          <MapControls
-            locating={locating}
-            onZoomIn={() => mapRef.current?.zoomIn()}
-            onZoomOut={() => mapRef.current?.zoomOut()}
-            onRecenter={() => {
-              const map = mapRef.current;
-              const bounds = snapshot
-                ? campusBoundsFromBlocks(snapshot.blocks)
-                : FALLBACK_CAMPUS_BOUNDS;
-              map?.fitBounds(bounds, { padding: 28, duration: 300 });
-            }}
-            onLocate={geolocation.request}
-          />
-        ) : null}
-      </div>
-
-      {locationMessage ? (
-        <Alert tone="warning" className="mt-3">
-          Usando el centro del campus. Activa la ubicación para ver distancias
-          desde donde estás.
-        </Alert>
       ) : null}
 
-      {geolocation.status === "granted" ? (
-        <p role="status" className="mt-3 text-sm text-carbon/70">
-          Viendo distancias desde tu ubicación.
-        </p>
+      {status === "ready" ? (
+        <MapControls
+          locating={locating}
+          onZoomIn={() => mapRef.current?.zoomIn()}
+          onZoomOut={() => mapRef.current?.zoomOut()}
+          onRecenter={() => {
+            const map = mapRef.current;
+            map?.fitBounds(campusBoundsFromBlocks(blocks), {
+              padding: 28,
+              duration: 300,
+            });
+          }}
+          onLocate={onLocate}
+        />
       ) : null}
-
-      <MapPlaceList places={places} />
     </div>
   );
 }

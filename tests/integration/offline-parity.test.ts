@@ -153,6 +153,8 @@ function offlineSearch(
     category,
     maxDistanceM: RADIUS_M,
     openNow: false,
+    q: null,
+    order: "distance",
   });
 }
 
@@ -164,9 +166,7 @@ describe("paridad online/offline del catálogo", () => {
     const online = await rpcSearch(fixture.blockId, 10000, null);
     const offline = offlineSearch(snapshot, 10000, null);
 
-    expect(offline.map((item) => item.id)).toEqual(
-      online.map((row) => row.id),
-    );
+    expect(offline.map((item) => item.id)).toEqual(online.map((row) => row.id));
     expect(offline.map((item) => item.id)).toEqual([
       fixture.nearCheap,
       fixture.farCheap,
@@ -184,9 +184,7 @@ describe("paridad online/offline del catálogo", () => {
     const online = await rpcSearch(fixture.blockId, 20000, "cafe");
     const offline = offlineSearch(snapshot, 20000, "cafe");
 
-    expect(offline.map((item) => item.id)).toEqual(
-      online.map((row) => row.id),
-    );
+    expect(offline.map((item) => item.id)).toEqual(online.map((row) => row.id));
     expect(offline.map((item) => item.id)).toEqual([fixture.farCheap]);
   });
 

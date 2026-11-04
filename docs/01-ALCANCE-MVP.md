@@ -24,11 +24,13 @@ Para los establecimientos, SaborU es una vitrina digital y un panel con retroali
    - Ficha pública de establecimiento y de producto.
 
 2. **Buscador y filtros**
+   - Búsqueda por texto en plato, descripción, local y categoría.
    - Presupuesto máximo (por ejemplo, "qué puedo comer con $10.000").
-   - Cercanía a un bloque del campus.
+   - Cercanía desde la ubicación del usuario o desde un bloque del campus.
    - Abierto ahora según el horario.
    - Tipo de comida o categoría.
-   - Filtros combinables, con paginación.
+   - Filtros combinables, orden por cercanía/precio/rating y paginación.
+   - Estado compartible en la URL (`q`, categoría, presupuesto, abierto, orden).
    - Mapa del campus con los locales y la ubicación del usuario (solo con conexión; la lista y la distancia en texto son la alternativa).
    - Funciona igual con y sin conexión para buscar y filtrar (se busca sobre una copia local del catálogo).
 
@@ -103,7 +105,8 @@ El MVP se considera terminado cuando estos flujos funcionan de punta a punta y p
 6. **Offline, lectura:** tras una visita con conexión, con la red cortada y la página recargada, el estudiante busca por presupuesto, abre una ficha y la ve completa.
 7. **Offline, escritura:** sin conexión, el estudiante escribe una reseña, la ve "Pendiente de envío"; al volver la red se publica y aparece la insignia "Reseña verificada".
 8. **Offline, privacidad:** al cerrar sesión se borran las cachés y datos privados locales, y el panel del vendedor muestra "requiere conexión" sin datos.
-9. **Mapa, solo con conexión:** muestra los locales del campus y la ubicación del usuario con permiso; sin permiso cae al centro del campus y sin teselas cae a la lista con distancias en texto.
+9. **Mapa, solo con conexión:** muestra los locales del campus y la ubicación del usuario con permiso; sin permiso cae al bloque por defecto o al centro del campus y sin teselas cae a la lista con distancias en texto.
+10. **Descubrimiento compartible:** texto y chips actualizan mapa y lista sin recargar; recargar la URL conserva los filtros y el estado vacío ofrece limpiar filtros.
 
 Además: la app es instalable (Lighthouse/DevTools) y se verificó a mano en un Android con Chrome y, si es posible, en un iPhone con Safari.
 

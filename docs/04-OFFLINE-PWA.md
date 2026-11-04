@@ -153,7 +153,9 @@ los mismos datos, los ids y el orden del RPC `search_products` contra
 
 ## Búsqueda offline
 
-`search(snapshot, filtros)` es una función pura: presupuesto, distancia al bloque (fórmula haversine en `src/lib/catalog/distance.ts`), categoría, abierto ahora (`isOpenAt`) y orden. Mismos resultados que el RPC online con los mismos datos. Sin mapa interactivo: se muestra el bloque y la distancia en texto.
+`searchCatalog(items, filtros)` es una función pura: presupuesto, distancia desde el bloque (fórmula haversine en `src/lib/catalog/distance.ts`), categoría, abierto ahora (`isOpenAt`), texto opcional y orden. Mismos resultados que el RPC con los mismos datos. La pantalla `/offline` usa el bloque y muestra la distancia en texto, sin mapa.
+
+El descubrimiento online de `/` y `/buscar` también usa el snapshot y `searchCatalog`, pero no lee IndexedDB ni monta el mapa sin red. Si la conexión se corta con la página abierta, la lista en memoria sigue visible y el mapa se retira; una recarga sin red cae en el shell `/offline`.
 
 ## Cola de envío (outbox)
 

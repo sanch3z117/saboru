@@ -21,9 +21,6 @@ export const FALLBACK_CAMPUS_BOUNDS: MapBounds = [
   [CAMPUS_CENTER.longitude + 0.0032, CAMPUS_CENTER.latitude + 0.0026],
 ];
 
-/** Alto fijo para evitar CLS entre skeleton y mapa cargado. */
-export const MAP_HEIGHT_CLASS = "h-[420px] sm:h-[480px]";
-
 export const MAPLIBRE_WORKER_PATH = "/maplibre/maplibre-gl-worker.mjs";
 
 export const OSM_ATTRIBUTION =

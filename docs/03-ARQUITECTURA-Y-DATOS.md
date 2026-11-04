@@ -43,7 +43,7 @@ saboru/
 │   │   ├── sw.ts                         # service worker (Serwist)
 │   │   ├── manifest.ts
 │   │   └── layout.tsx
-│   ├── components/ (ui, catalog, reviews, vendor, offline)
+│   ├── components/ (ui, discovery, map, catalog, reviews, vendor, offline)
 │   ├── lib/
 │   │   ├── supabase/ (server.ts, browser.ts, admin.ts)
 │   │   ├── auth/ (guards.ts, roles.ts)
@@ -478,8 +478,12 @@ Regla: ninguna tabla nueva sin `enable row level security` y sus políticas. Nun
 
 ## Búsqueda del catálogo
 
-- **Fuente única de lógica:** `src/lib/catalog/search.ts` (función pura) aplica presupuesto, distancia a un bloque, categoría, abierto ahora y orden. La usa la UI online (sobre datos del servidor) y offline (sobre el snapshot local).
-- **Online:** RPC `search_products(p_budget, p_block_id, p_radius_m, p_category)` devuelve candidatos; "abierto ahora" y paginación se aplican en el servidor sobre ese conjunto (el catálogo es pequeño: ≤ unos cientos de productos).
+- **Fuente única de lógica:** `src/lib/catalog/search.ts` (función pura) aplica texto, presupuesto, distancia desde un origen, categoría, abierto ahora, orden y paginación. La usa el descubrimiento online y la búsqueda offline.
+- **Texto (`q`):** se normaliza sin acentos y busca en nombre y descripción del producto, nombre y descripción del local y categoría; varias palabras se combinan con AND.
+- **Origen:** la ubicación del usuario si existe; si no, el bloque de la URL o el bloque por defecto; si no hay bloque válido, el centro del campus. `bloque` es legado y solo sirve como respaldo.
+- **Online:** `/` y `/buscar` descargan el snapshot público y ejecutan `snapshotToSearchItems(snapshot, origin)` + `searchCatalog`. No llaman al RPC. El rating por local se calcula con `product_stats`: promedio de los productos con al menos 5 reseñas; los locales sin datos quedan al final y el mismo valor se usa en mapa, lista y sheet.
+- **URL:** `q`, `categoria`, `presupuesto`, `abierto`, `orden` y `pagina` son el estado compartible; los chips actualizan la URL sin recargar y el texto se debounce.
+- **RPC:** `search_products(p_budget, p_block_id, p_radius_m, p_category)` se conserva para la API y las pruebas de paridad; no es la fuente del descubrimiento. La función pura debe seguir dando el mismo resultado con los mismos datos.
 
 ```sql
 select p.*, e.name as establishment_name,
@@ -502,13 +506,13 @@ order by distance_m asc, p.price_cop asc;
 
 ## Mapa del campus (Fase 7.5.1)
 
-- **Librería:** `maplibre-gl@6.16.0` fijado exacto. Se carga solo en cliente con `CampusMapLoader` (`dynamic(..., { ssr: false })`) y solo en la home hasta que 7.5.2 lo mueva al descubrimiento. No se importa en `/offline`, panel ni admin.
+- **Librería:** `maplibre-gl@6.16.0` fijado exacto. Se carga solo en cliente con `CampusMapLoader` (`dynamic(..., { ssr: false })`) desde la superficie de descubrimiento compartida por `/` y `/buscar`. No se importa en `/offline`, panel ni admin.
 - **Worker:** `public/maplibre/maplibre-gl-worker.mjs`, copiado desde `node_modules` por `scripts/copy-maplibre-worker.mjs` en `prebuild`/`predev`. `setWorkerUrl` apunta a esa ruta same-origin; la CSP mantiene `worker-src 'self' blob:`.
-- **Datos:** el mapa descarga `GET /api/catalog/snapshot` y `src/lib/map/places.ts` (función pura) filtra latitud/longitud, calcula precio mínimo, rating disponible desde `product_stats` y distancia con haversine. No hay RPC nuevo ni migración. Los bloques salen del snapshot y el centro de respaldo es `5.5520095, -73.3566646`.
+- **Datos:** el descubrimiento descarga `GET /api/catalog/snapshot`; `src/lib/map/places.ts` (función pura) agrupa por local, calcula precio mínimo, rating agregado desde `product_stats` (mínimo 5 reseñas por producto) y distancia con haversine. No hay RPC nuevo ni migración. Los bloques salen del snapshot y el centro de respaldo es `5.5520095, -73.3566646`.
 - **Estilo:** MapTiler `streets-v2` si existe `NEXT_PUBLIC_MAPTILER_KEY`; si falta o está vacía, raster de OpenStreetMap con atribución visible. La clave es pública por diseño, no un secreto de servidor.
-- **Ubicación:** `useGeolocation` solo se dispara con “Usar mi ubicación”; no persiste ni envía coordenadas. Si se niega, falla o expira, se usa el centro del campus y se avisa. La distancia se muestra en el popup y en la lista.
-- **Online-only:** el mapa no lee IndexedDB ni el snapshot offline. Si fallan las teselas, el worker o la red, se muestra `MapFallback` con listado y reintento. El service worker excluye teselas, estilos, sprites y glifos (ver `docs/04`).
-- **Componentes:** `campus-map`, `campus-map-loader`, `campus-map-section`, `map-marker` (Pin-U), `map-popup`, `map-controls`, `map-fallback`, `map-skeleton` y `map-place-list`.
+- **Ubicación:** `useGeolocation` solo se dispara con “Usar mi ubicación”; no persiste ni envía coordenadas. Si se niega, falla o expira, se usa el bloque de la URL o el bloque por defecto, y el centro del campus como último respaldo; la UI lo avisa.
+- **Online-only:** el mapa no lee IndexedDB ni el snapshot offline. Si fallan las teselas, el worker o la red, se muestra `MapFallback` y la lista de resultados sigue visible. El service worker excluye teselas, estilos, sprites y glifos (ver `docs/04`).
+- **Componentes:** `campus-map`, `campus-map-loader`, `map-marker` (Pin-U), `map-popup`, `map-controls`, `map-fallback` y `map-skeleton`; la superficie de descubrimiento vive en `components/discovery/` (`DiscoverySurface`, búsqueda, resultados y sheet móvil).
 
 ## Snapshot y sincronización
 

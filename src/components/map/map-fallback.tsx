@@ -20,7 +20,7 @@ export function MapFallback({
       <Alert tone="warning" title="El mapa no está disponible">
         <p>{message}</p>
         <p className="mt-1 text-carbon/70">
-          Puedes ver los locales y la distancia en la lista de abajo.
+          Puedes ver los locales y la distancia en la lista de resultados.
         </p>
       </Alert>
 

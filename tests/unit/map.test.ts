@@ -7,7 +7,12 @@ import {
   FALLBACK_CAMPUS_BOUNDS,
   mapStyleFor,
 } from "@/lib/map/config";
-import { campusBoundsFromBlocks, placesFromSnapshot } from "@/lib/map/places";
+import {
+  campusBoundsFromBlocks,
+  groupSearchItemsByPlace,
+  placesFromSnapshot,
+} from "@/lib/map/places";
+import { snapshotToSearchItems } from "@/lib/offline/snapshot";
 import type {
   CatalogSnapshot,
   ProductRow,
@@ -159,7 +164,7 @@ describe("placesFromSnapshot", () => {
             price_cop: 1000,
           }),
         ],
-        product_stats: [stats({ product_id: "p2", review_count: 2 })],
+        product_stats: [stats({ product_id: "p2", review_count: 5 })],
       }),
       origin,
     );
@@ -170,7 +175,7 @@ describe("placesFromSnapshot", () => {
       photoPath: "local/foto.webp",
       priceFromCop: 5000,
       rating: 4.4,
-      reviewCount: 2,
+      reviewCount: 5,
     });
     expect(place[0].distanceMeters).toBeGreaterThan(100);
   });
@@ -195,5 +200,51 @@ describe("placesFromSnapshot", () => {
 
   it("devuelve una lista vacía sin establecimientos válidos", () => {
     expect(placesFromSnapshot(snapshot())).toEqual([]);
+  });
+});
+
+describe("groupSearchItemsByPlace", () => {
+  it("agrupa por local, usa el precio mínimo y el mismo rating que la lista", () => {
+    const data = snapshot({
+      establishments: [
+        establishment({ id: "e1", slug: "e1", name: "Local uno" }),
+        establishment({
+          id: "e2",
+          slug: "e2",
+          name: "Local dos",
+          latitude: 5.553,
+        }),
+      ],
+      products: [
+        product({ id: "p1", establishment_id: "e1", price_cop: 9000 }),
+        product({ id: "p2", establishment_id: "e1", price_cop: 7000 }),
+        product({ id: "p3", establishment_id: "e2", price_cop: 4000 }),
+      ],
+      product_stats: [
+        stats({ product_id: "p1", review_count: 5 }),
+        stats({ product_id: "p3", review_count: 4 }),
+      ],
+    });
+    const items = snapshotToSearchItems(data, CAMPUS_CENTER);
+    const groups = groupSearchItemsByPlace(data, items);
+
+    expect(groups).toHaveLength(2);
+    expect(groups[0]).toMatchObject({
+      place: {
+        id: "e1",
+        priceFromCop: 7000,
+        rating: 4.4,
+        reviewCount: 5,
+      },
+    });
+    expect(groups[0].items).toHaveLength(2);
+    expect(groups[1]).toMatchObject({
+      place: {
+        id: "e2",
+        priceFromCop: 4000,
+        rating: null,
+        reviewCount: 0,
+      },
+    });
   });
 });

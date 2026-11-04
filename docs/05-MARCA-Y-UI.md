@@ -146,8 +146,18 @@ La app no es un tablero SaaS. Es la cartelera de comida del campus: papel crema,
 - **Marcadores:** Pin-U por local y etiquetas discretas de los bloques. El marcador seleccionado escala y sube de z-index; el punto del usuario es naranja con halo.
 - **Popup:** tarjeta compacta con foto, nombre, categoría, estrella y conteo, distancia, “Desde $…” y “Ver ficha”. Cierra con botón “Cerrar” y clic en el mapa.
 - **Controles:** acercar, alejar, centrar en el campus y “Usar mi ubicación”. Todos con nombre accesible y objetivo táctil de 44 px.
-- **Fallback:** si no hay red o fallan las teselas, se retira el mapa y se muestra el aviso, la atribución y la lista textual con distancias; “Reintentar” vuelve a montar el mapa.
+- **Fallback:** si no hay red o fallan las teselas, se retira el mapa y se muestra el aviso y la atribución; la lista de resultados sigue visible y “Reintentar” vuelve a montar el mapa.
 - **Proveedor:** MapTiler Free con `NEXT_PUBLIC_MAPTILER_KEY`; sin clave, OpenStreetMap raster con atribución. Nunca se cachean teselas ni estilos.
+
+### Descubrimiento map-first
+
+- **Una superficie:** `/` y `/buscar` comparten búsqueda sticky, chips y resultados; la home añade un hero compacto, no un buscador distinto.
+- **Buscador:** texto en plato, descripción, local o categoría; chips de categoría, presupuesto, “Abierto ahora” y orden; en móvil los chips hacen scroll horizontal.
+- **Composición:** escritorio mapa 60% / lista 40%; tablet apilado; móvil mapa 46vh y lista debajo. La búsqueda queda sticky y no tapa el contenido.
+- **Lista:** agrupada por local, con rating agregado, distancia, precio desde y productos coincidentes como filas simples. No se adelantan las cards con foto de 7.5.3.
+- **Selección:** el marcador Pin-U selecciona el local y resalta su grupo; en móvil se abre un `Sheet` inferior con resumen y CTA “Ver ficha”. Cerrar devuelve el foco al mapa.
+- **Rating:** el local usa el promedio de productos con al menos 5 reseñas; si no hay datos, “Sin reseñas suficientes” en lista y mapa.
+- **Estados:** carga con skeletons, vacío con “Limpiar filtros”, error con reintento, permiso denegado con bloque por defecto, sin conexión con la lista en memoria y mapa retirado.
 
 ### Estados obligatorios
 

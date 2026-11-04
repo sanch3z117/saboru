@@ -1,3 +1,4 @@
+import { distanceMeters, type Coordinates } from "./distance";
 import { isOpenAt, type WeeklySchedule } from "./schedule";
 
 export type CatalogSearchItem = {
@@ -12,15 +13,25 @@ export type CatalogSearchItem = {
   allergens: string[];
   establishment_name: string;
   establishment_slug: string;
-  distance_m: number;
   establishment_schedule: WeeklySchedule | null;
+  establishment_description?: string | null;
+  establishment_latitude?: number | null;
+  establishment_longitude?: number | null;
+  establishment_rating?: number | null;
+  establishment_review_count?: number | null;
+  distance_m: number;
 };
+
+export type CatalogOrder = "distance" | "price" | "rating";
 
 export type CatalogFilters = {
   budget: number | null;
   category: string | null;
   maxDistanceM: number | null;
   openNow: boolean;
+  q?: string | null;
+  order?: CatalogOrder;
+  origin?: Coordinates | null;
   now?: Date;
   timeZone?: string;
 };
@@ -33,13 +44,85 @@ export type CatalogPage<T> = {
   totalPages: number;
 };
 
+export function normalizeSearchText(value: string) {
+  return value
+    .toLocaleLowerCase("es")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+export function matchesCatalogQuery(
+  item: CatalogSearchItem,
+  q: string | null | undefined,
+) {
+  const needle = normalizeSearchText(q ?? "");
+  if (!needle) return true;
+
+  const haystack = normalizeSearchText(
+    [
+      item.name,
+      item.description,
+      item.establishment_name,
+      item.establishment_description ?? "",
+      item.category,
+    ].join(" "),
+  );
+
+  return needle
+    .split(/\s+/)
+    .filter(Boolean)
+    .every((token) => haystack.includes(token));
+}
+
+/** Usa las coordenadas del ítem si existen; si no, la distancia ya calculada. */
+export function distanceForCatalogItem(
+  item: CatalogSearchItem,
+  origin?: Coordinates | null,
+) {
+  const latitude = item.establishment_latitude;
+  const longitude = item.establishment_longitude;
+
+  if (
+    origin &&
+    typeof latitude === "number" &&
+    typeof longitude === "number" &&
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude)
+  ) {
+    return distanceMeters(origin, { latitude, longitude });
+  }
+
+  return item.distance_m;
+}
+
 export function compareCatalogItems(
   a: CatalogSearchItem,
   b: CatalogSearchItem,
+  order: CatalogOrder = "distance",
+  origin?: Coordinates | null,
 ) {
-  if (a.distance_m !== b.distance_m) {
-    return a.distance_m - b.distance_m;
+  if (order === "rating") {
+    const ratingA = a.establishment_rating ?? null;
+    const ratingB = b.establishment_rating ?? null;
+
+    if (ratingA !== ratingB) {
+      if (ratingA === null) return 1;
+      if (ratingB === null) return -1;
+      return ratingB - ratingA;
+    }
   }
+
+  if (order === "price" && a.price_cop !== b.price_cop) {
+    return a.price_cop - b.price_cop;
+  }
+
+  const distanceA = distanceForCatalogItem(a, origin);
+  const distanceB = distanceForCatalogItem(b, origin);
+  if (distanceA !== distanceB) {
+    return distanceA - distanceB;
+  }
+
   return a.price_cop - b.price_cop;
 }
 
@@ -51,13 +134,17 @@ export function filterCatalog(
   const timeZone = filters.timeZone ?? "America/Bogota";
 
   return items.filter((item) => {
+    if (!matchesCatalogQuery(item, filters.q)) {
+      return false;
+    }
+
     if (filters.budget !== null && item.price_cop > filters.budget) {
       return false;
     }
 
     if (
       filters.maxDistanceM !== null &&
-      item.distance_m > filters.maxDistanceM
+      distanceForCatalogItem(item, filters.origin) > filters.maxDistanceM
     ) {
       return false;
     }
@@ -81,7 +168,11 @@ export function searchCatalog(
   items: CatalogSearchItem[],
   filters: CatalogFilters,
 ): CatalogSearchItem[] {
-  return filterCatalog(items, filters).sort(compareCatalogItems);
+  const order = filters.order ?? "distance";
+
+  return filterCatalog(items, filters).sort((a, b) =>
+    compareCatalogItems(a, b, order, filters.origin),
+  );
 }
 
 export function paginate<T>(
