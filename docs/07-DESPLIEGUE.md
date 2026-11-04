@@ -42,7 +42,7 @@ No definir `RATE_LIMIT_DISABLED` ni `E2E_SW_TEST` en producción. `/api/e2e/sw-t
 - Seed aplicado una vez: 6 bloques, 7 establecimientos y 24 productos.
 - Bucket público `establishment-photos` con límite de 5 MB y tipos JPEG/PNG/WebP.
 - RLS activa en todas las tablas; se revisaron los advisors de seguridad y rendimiento. Los avisos de vistas/funciones `security definer` son deliberados (docs/03).
-- La cuenta admin institucional se creó y se le asignó `role='admin'` manualmente. No se guarda en el repositorio.
+- La cuenta admin del demo es un Gmail con `role='admin'` asignado manualmente por SQL. La cuenta institucional anterior se eliminó porque su buzón no era accesible. Las cuentas no se guardan en el repositorio.
 - El bucket y las rutas de fotos se verificaron con la clave anónima y con el cliente de servidor.
 
 ## Auth y SMTP
@@ -50,7 +50,7 @@ No definir `RATE_LIMIT_DISABLED` ni `E2E_SW_TEST` en producción. `/api/e2e/sw-t
 - Site URL: `https://saboru.vercel.app`.
 - Redirect URLs: `https://saboru.vercel.app/auth/callback`, `https://saboru-bross7.vercel.app/auth/callback` y el comodín `https://saboru-*-bross7.vercel.app/**` para previews/demo.
 - SMTP propio activado en Supabase Auth con Brevo (`smtp-relay.brevo.com:587`).
-- El remitente es una dirección de Gmail ya verificada en Brevo. `uptc.edu.co` no se pudo usar como remitente porque su política DMARC exige autenticación de dominio por DNS; la cuenta admin sigue siendo institucional.
+- El remitente es una dirección de Gmail ya verificada en Brevo. `uptc.edu.co` no se pudo usar como remitente porque su política DMARC exige autenticación de dominio por DNS; la cuenta admin del demo también es Gmail.
 - Brevo aceptó un envío de prueba al buzón admin. La entrega final se confirma revisando la bandeja y la carpeta de spam.
 - Límite de correos de Supabase con SMTP propio: 30 por hora (ajustable en Auth → Rate Limits).
 
