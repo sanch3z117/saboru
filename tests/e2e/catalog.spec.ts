@@ -171,7 +171,9 @@ test.describe("catálogo", () => {
     await expect(
       page.getByText("Todavía no hay reseñas publicadas."),
     ).toBeVisible();
-    await expect(page.getByText("Foto del local próximamente")).toBeAttached();
+    await expect(
+      page.getByRole("heading", { name: "Mapa y cómo llegar" }),
+    ).toBeVisible();
   });
 
   test("la ficha de producto muestra precio, stats y registra la vista", async ({

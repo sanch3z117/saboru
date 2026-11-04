@@ -1,14 +1,15 @@
 import { Suspense } from "react";
 
-import { EstablishmentCard } from "@/components/catalog/establishment-card";
 import { DiscoverySkeleton } from "@/components/discovery/discovery-skeleton";
 import { DiscoverySurface } from "@/components/discovery/discovery-surface";
+import { FeaturedBand } from "@/components/home/featured-band";
+import { HowItWorks } from "@/components/home/how-it-works";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SnapshotRefresher } from "@/components/offline/snapshot-refresher";
-import { getFeaturedEstablishments } from "@/server/queries/catalog";
+import { getFeaturedEstablishmentCards } from "@/server/queries/catalog";
 
 export default async function HomePage() {
-  const featured = await getFeaturedEstablishments();
+  const featured = await getFeaturedEstablishmentCards();
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -30,34 +31,8 @@ export default async function HomePage() {
           </Suspense>
         </div>
 
-        <section aria-labelledby="destacado" className="mt-14">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2
-              id="destacado"
-              className="font-display text-2xl font-semibold text-carbon"
-            >
-              Destacado
-            </h2>
-            <p className="text-sm text-carbon/60">
-              Locales patrocinados, fuera del ranking.
-            </p>
-          </div>
-
-          {featured.length > 0 ? (
-            <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {featured.map((establishment) => (
-                <EstablishmentCard
-                  key={establishment.id}
-                  establishment={establishment}
-                />
-              ))}
-            </div>
-          ) : (
-            <p className="mt-4 text-base text-carbon/70">
-              Todavía no hay locales destacados.
-            </p>
-          )}
-        </section>
+        <FeaturedBand establishments={featured} />
+        <HowItWorks />
       </main>
 
       <footer className="mx-auto w-full max-w-6xl px-5 pb-6 sm:px-8 sm:pb-8">

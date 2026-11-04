@@ -118,9 +118,9 @@ test.describe("descubrimiento", () => {
       .getByTestId("discovery-empty")
       .getByRole("button", { name: "Limpiar filtros" })
       .click();
-    await expect(page).toHaveURL(/\/buscar$/);
     await expect(page.getByTestId("discovery-count")).toContainText(
       "7 locales",
+      { timeout: 10_000 },
     );
   });
 

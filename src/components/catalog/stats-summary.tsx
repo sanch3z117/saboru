@@ -1,7 +1,8 @@
-import { formatRating } from "@/lib/format";
 import { statsAverage } from "@/lib/reviews/stats";
 import { cn } from "@/lib/utils";
 import type { ProductStatsRow } from "@/types/catalog";
+
+import { RatingStars } from "./rating-stars";
 
 export function StatsSummary({
   stats,
@@ -21,11 +22,12 @@ export function StatsSummary({
   }
 
   return (
-    <p className={cn("text-sm text-carbon/75", className)}>
-      <span className="font-display text-base font-semibold text-carbon">
-        {formatRating(average)}
-      </span>{" "}
-      / 5 · {stats.review_count ?? 0} reseñas
-    </p>
+    <div className={cn("text-sm text-carbon/75", className)}>
+      <RatingStars
+        value={average}
+        reviewCount={stats.review_count ?? 0}
+        size="sm"
+      />
+    </div>
   );
 }

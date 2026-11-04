@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { FavoriteButton } from "@/components/catalog/favorite-button";
 import { RetryButton } from "@/components/offline/retry-button";
 import { RequiresConnection } from "@/components/offline/requires-connection";
-import { OfflineFavoriteButton } from "@/components/offline/offline-favorite-button";
 import { OfflineReportForm } from "@/components/offline/offline-report-form";
 import { OfflineReviewForm } from "@/components/offline/offline-review-form";
 import { formatSchedule, type WeeklySchedule } from "@/lib/catalog/schedule";
@@ -483,10 +483,12 @@ function OfflineDetail({
         ) : null}
 
         {canParticipate && sessionUserId ? (
-          <OfflineFavoriteButton
+          <FavoriteButton
             userId={sessionUserId}
             establishmentId={item.establishment_id}
             productId={item.id}
+            initialSaved={null}
+            serverAvailable={false}
           />
         ) : null}
 

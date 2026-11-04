@@ -473,8 +473,16 @@ Regla: ninguna tabla nueva sin `enable row level security` y sus políticas. Nun
 - Bucket `establishment-photos`: lectura pública; escritura solo en la ruta `{establishment_id}/...` si el usuario es dueño de ese establecimiento (política sobre `storage.objects`). El primer segmento se valida como UUID con `public.photo_establishment_id(text)`, de modo que una ruta inválida no puede colarse por un cast.
 - Nombres de archivo con UUID aleatorio, tipos permitidos `image/jpeg`, `image/png` e `image/webp`, y tamaño máximo 5 MB (configurado en el bucket: `file_size_limit` y `allowed_mime_types`). El servidor vuelve a validar tipo y tamaño antes de subir.
 - Un vendedor no puede escribir, sobrescribir ni borrar fotos de otro local; tampoco puede mover un objeto a otra carpeta en un `update`.
-- La columna `establishments.photos` guarda rutas de Storage (no URLs); la UI arma la URL pública con `photoPublicUrl`.
+- La columna `establishments.photos` guarda rutas de Storage (no URLs); `products.photo_url` guarda una ruta o una URL pública. La UI arma la URL con `photoSrc` (`src/lib/photos.ts`).
+- **Fotos demo:** `public/demo/*.webp` y `docs/demo/CREDITS.md`. El script local `npm run demo:photos` (Node con `--env-file=.env.local`) sube al bucket y actualiza `establishments.photos`/`products.photo_url`; es idempotente, acepta `--dry-run`, nunca imprime la service role y aborta en CI/producción. La app nunca importa ni usa la service role.
 - La parte de Storage de la prueba 12 se valida en la Fase 5; en 1.3 solo se probó la parte de tabla (`photos` de otro local no se puede actualizar).
+
+## Cartelera y fichas (Fase 7.5.3)
+
+- `EstablishmentCard` y `ProductCard` toman datos públicos de `public_establishments`, `products` y `product_stats`: foto, precio mínimo, distancia desde el bloque por defecto, rating agregado con mínimo 5 reseñas, horario y plan/estado.
+- `Destacado` depende del plan; `Activo` del estado real. **“Verificado” no se usa para locales activos**: queda reservado a la reseña verificada o a un flag real futuro.
+- La ficha de local reutiliza `CampusMap` con un solo marcador; no se agrega lógica nueva al mapa. La ficha de producto y la de local generan `generateMetadata` y `opengraph-image` públicos (1200×630) con foto o fallback de marca.
+- El favorito usa `getFavoriteContext` (estado propio en servidor), IndexedDB y outbox. El estado del servidor manda cuando está disponible; una operación local solo gana si es posterior a la carga de la página.
 
 ## Búsqueda del catálogo
 

@@ -2,8 +2,15 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 
+import {
+  scheduleFromJson,
+  type EstablishmentCardData,
+} from "@/lib/catalog/cards";
+import { distanceMeters } from "@/lib/catalog/distance";
+import { aggregateEstablishmentRating } from "@/lib/catalog/rating";
 import type { WeeklySchedule } from "@/lib/catalog/schedule";
 import type { CatalogSearchItem } from "@/lib/catalog/search";
+import { CAMPUS_CENTER } from "@/lib/map/config";
 import { createClient } from "@/lib/supabase/server";
 import { createPublicClient } from "@/lib/supabase/public";
 import type {
@@ -62,6 +69,43 @@ export async function getDefaultBlock(): Promise<BlockRow | null> {
   const fallback = await supabase
     .from("campus_blocks")
     .select("id, name")
+    .order("name")
+    .limit(1)
+    .maybeSingle();
+
+  return fallback.data ?? null;
+}
+
+export type BlockLocation = {
+  id: string;
+  name: string;
+  latitude: number | null;
+  longitude: number | null;
+};
+
+export async function getBlocksWithLocation(): Promise<BlockLocation[]> {
+  const supabase = await createClient();
+  const result = await supabase
+    .from("public_blocks")
+    .select("id, name, latitude, longitude")
+    .order("name");
+
+  return unwrap(result) ?? [];
+}
+
+export async function getDefaultBlockLocation(): Promise<BlockLocation | null> {
+  const supabase = await createClient();
+  const named = await supabase
+    .from("public_blocks")
+    .select("id, name, latitude, longitude")
+    .eq("name", "Bloque Central")
+    .maybeSingle();
+
+  if (named.data) return named.data;
+
+  const fallback = await supabase
+    .from("public_blocks")
+    .select("id, name, latitude, longitude")
     .order("name")
     .limit(1)
     .maybeSingle();
@@ -129,6 +173,83 @@ export async function getFeaturedEstablishments(limit = 6) {
   return unwrap(result) ?? [];
 }
 
+export async function getFeaturedEstablishmentCards(
+  limit = 6,
+): Promise<EstablishmentCardData[]> {
+  const supabase = await createClient();
+  const [featuredResult, block] = await Promise.all([
+    supabase
+      .from("public_establishments")
+      .select(
+        "id, name, slug, description, category, plan, photos, schedule, status, latitude, longitude",
+      )
+      .in("plan", ["featured", "pro"])
+      .order("name")
+      .limit(limit),
+    getDefaultBlockLocation(),
+  ]);
+  const featured = unwrap(featuredResult) ?? [];
+  if (featured.length === 0) return [];
+
+  const establishmentIds = featured.map((establishment) => establishment.id);
+  const productsResult = await supabase
+    .from("products")
+    .select("id, establishment_id, price_cop")
+    .in("establishment_id", establishmentIds)
+    .eq("available", true);
+  const products = unwrap(productsResult) ?? [];
+  const productIds = products.map((product) => product.id);
+
+  const statsResult =
+    productIds.length > 0
+      ? await supabase
+          .from("product_stats")
+          .select("*")
+          .in("product_id", productIds)
+      : { data: [] as ProductStatsRow[], error: null };
+  const stats = unwrap(statsResult) ?? [];
+
+  const origin =
+    block && block.latitude !== null && block.longitude !== null
+      ? { latitude: block.latitude, longitude: block.longitude }
+      : CAMPUS_CENTER;
+
+  return featured.map((establishment) => {
+    const establishmentProducts = products.filter(
+      (product) => product.establishment_id === establishment.id,
+    );
+    const ids = new Set(establishmentProducts.map((product) => product.id));
+    const aggregate = aggregateEstablishmentRating(stats, ids);
+
+    return {
+      id: establishment.id,
+      slug: establishment.slug,
+      name: establishment.name,
+      description: establishment.description,
+      category: establishment.category,
+      plan: establishment.plan,
+      status: establishment.status,
+      photoPath: establishment.photos?.[0] ?? null,
+      schedule: scheduleFromJson(establishment.schedule),
+      distanceMeters:
+        establishment.latitude !== null && establishment.longitude !== null
+          ? distanceMeters(origin, {
+              latitude: establishment.latitude,
+              longitude: establishment.longitude,
+            })
+          : null,
+      priceFromCop:
+        establishmentProducts.length > 0
+          ? Math.min(
+              ...establishmentProducts.map((product) => product.price_cop),
+            )
+          : null,
+      rating: aggregate.rating,
+      reviewCount: aggregate.reviewCount,
+    } satisfies EstablishmentCardData;
+  });
+}
+
 export async function getEstablishmentBySlug(slug: string) {
   const supabase = await createClient();
   const establishment = await supabase
@@ -187,7 +308,9 @@ export async function getProductById(id: string) {
 
   const establishmentResult = await supabase
     .from("public_establishments")
-    .select("id, name, slug, category")
+    .select(
+      "id, name, slug, category, description, latitude, longitude, schedule, photos",
+    )
     .eq("id", product.establishment_id)
     .maybeSingle();
 

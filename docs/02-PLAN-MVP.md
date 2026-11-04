@@ -118,7 +118,7 @@ Insertada antes de Fase 8. Detalle de dirección visual en `docs/05` y de datos 
 - **7.5.0 Fundación de diseño** — hecho: skill `frontend-design` local, tokens, primitivas, logo y helper de fotos. Commit: `chore(design): instalar frontend-design y sistema visual`
 - **7.5.1 Mapa base y ubicación** — hecho: MapLibre 6.16.0, MapTiler/OSM, Pin-U, geolocalización y fallback. Commit: `feat(map): mapa del campus y ubicacion`
 - **7.5.2 Descubrimiento map-first** — `DiscoverySurface` compartida por `/` y `/buscar`, búsqueda por texto, chips, URL compartible, mapa controlado, lista agrupada y sheet móvil; snapshot público sin RPC nuevo. Commit: `feat(catalog): descubrimiento con mapa y busqueda`
-- **7.5.3 Cartelera y fichas** — pendiente (cards con foto, fichas, formulario de estrellas y fotos demo).
+- **7.5.3 Cartelera y fichas** - hecho: cards con foto, Destacados editorial, fichas de local/producto, estrellas, favoritos, OG y fotos demo. Commit: `feat(ui): cartelera de locales y fichas con fotos`
 - **7.5.4 Navegación y estados** — pendiente (header/footer globales, auth, offline y errores con marca).
 - **7.5.5 Demo y QA** — pendiente (E2E finales, capturas, Lighthouse y cierre).
 

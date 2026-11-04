@@ -1,4 +1,8 @@
-import { openOfflineDb, type FavoriteRecord } from "@/lib/offline/db";
+import { openOfflineDb, type FavoriteRecord, type OutboxItem } from "@/lib/offline/db";
+import {
+  listOutbox,
+  removeOutboxItems,
+} from "@/lib/offline/outbox";
 
 export type FavoriteTarget = {
   userId: string;
@@ -33,6 +37,43 @@ export async function listLocalFavorites(
   } finally {
     db.close();
   }
+}
+
+function matchesFavoriteTarget(item: OutboxItem, target: FavoriteTarget) {
+  if (item.type !== "favorite" || item.status !== "pending") return false;
+  const payload = item.payload as {
+    establishmentId?: unknown;
+    productId?: unknown;
+  };
+  return (
+    payload.establishmentId === target.establishmentId &&
+    (payload.productId ?? null) === target.productId
+  );
+}
+
+export async function findPendingFavorite(
+  target: FavoriteTarget,
+): Promise<OutboxItem | null> {
+  const items = await listOutbox(target.userId);
+  return (
+    items
+      .filter((item) => matchesFavoriteTarget(item, target))
+      .sort((a, b) => b.createdAt - a.createdAt)[0] ?? null
+  );
+}
+
+/** El servidor es más nuevo: descarta intenciones offline anteriores. */
+export async function removePendingFavoritesBefore(
+  target: FavoriteTarget,
+  before: number,
+) {
+  const items = await listOutbox(target.userId);
+  const stale = items
+    .filter(
+      (item) => matchesFavoriteTarget(item, target) && item.createdAt <= before,
+    )
+    .map((item) => item.clientId);
+  await removeOutboxItems(stale);
 }
 
 export async function setLocalFavorite(

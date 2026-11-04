@@ -50,7 +50,11 @@ Para los establecimientos, SaborU es una vitrina digital y un panel con retroali
    - Comparación con el promedio del campus.
    - Lectura únicamente de datos agregados y anonimizados, con un mínimo de reseñas para mostrar un promedio.
 
-5. **Funcionamiento sin conexión (offline-first)**
+5. **Favoritos**
+   - Guardar y quitar locales o productos con una cuenta institucional.
+   - El estado se ve al volver a la ficha y funciona con la cola offline; el servidor manda cuando está disponible.
+
+6. **Funcionamiento sin conexión (offline-first)**
    - La app se instala y abre sin internet (app shell en caché).
    - Catálogo, buscador, fichas y reseñas recientes disponibles tras la primera visita con conexión.
    - Reseñas, favoritos y reportes hechos sin conexión se guardan en una cola local y se envían al recuperar la red.
@@ -107,6 +111,7 @@ El MVP se considera terminado cuando estos flujos funcionan de punta a punta y p
 8. **Offline, privacidad:** al cerrar sesión se borran las cachés y datos privados locales, y el panel del vendedor muestra "requiere conexión" sin datos.
 9. **Mapa, solo con conexión:** muestra los locales del campus y la ubicación del usuario con permiso; sin permiso cae al bloque por defecto o al centro del campus y sin teselas cae a la lista con distancias en texto.
 10. **Descubrimiento compartible:** texto y chips actualizan mapa y lista sin recargar; recargar la URL conserva los filtros y el estado vacío ofrece limpiar filtros.
+11. **Favoritos:** una persona con sesión guarda un local o producto, lo ve marcado al recargar y la operación se conserva si se hace sin conexión.
 
 Además: la app es instalable (Lighthouse/DevTools) y se verificó a mano en un Android con Chrome y, si es posible, en un iPhone con Safari.
 

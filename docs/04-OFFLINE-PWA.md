@@ -202,6 +202,11 @@ Implementación (`src/lib/offline/outbox.ts`, `src/lib/offline/sync.ts`,
   `{ action: "add" | "remove", establishmentId, productId }`. El alta duplicada
   (23505) se trata como `duplicate`; la baja sin filas, como `ok`. La copia
   local vive en el store `favorites` por `userId`.
+- **Prioridad del botón:** si la ficha cargó el estado propio desde el servidor,
+  ese estado manda sobre IndexedDB salvo que exista una operación de favorito
+  en outbox creada después de la carga. Si el servidor gana, se alinea la copia
+  local y se descartan intenciones pendientes anteriores; si no hay servidor,
+  manda la copia local.
 - Las acciones solo se ofrecen si hay sesión y el usuario es estudiante: se usa
   el rol/`canReview` cacheado en `localStorage` (`saboru:viewer`). `GET
 /api/viewer` (NetworkOnly) lo refresca al montar, al volver `online` y al

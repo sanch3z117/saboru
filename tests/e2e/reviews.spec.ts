@@ -365,6 +365,44 @@ test.describe("reseñas", () => {
     ).toHaveCount(0);
   });
 
+  test("guardar un favorito online y recuperar el estado del servidor", async ({
+    page,
+    browserName,
+  }) => {
+    const email = `e2e.favorite.${browserName}.${randomUUID()}@uptc.edu.co`;
+    const fixture = await createProductFixture();
+    let userId = "";
+
+    try {
+      userId = await createUserViaApi(email);
+      await login(page, email);
+      await page.goto(`/producto/${fixture.productId}`);
+
+      await page.getByRole("button", { name: "Guardar", exact: true }).click();
+      await expect(page.getByText("Guardado.")).toBeVisible();
+
+      await expect
+        .poll(() =>
+          withDb(async (client) => {
+            const result = await client.query<{ count: number }>(
+              "select count(*)::int as count from public.favorites where user_id = $1 and product_id = $2",
+              [userId, fixture.productId],
+            );
+            return result.rows[0]?.count ?? 0;
+          }),
+        )
+        .toBe(1);
+
+      await page.reload();
+      await expect(
+        page.getByRole("button", { name: "Quitar de guardados" }),
+      ).toBeVisible();
+    } finally {
+      await deleteReviewsAndUsers([], [userId].filter(Boolean));
+      await deleteProductFixture(fixture);
+    }
+  });
+
   test("un admin autenticado tampoco puede reseñar", async ({
     page,
     browserName,

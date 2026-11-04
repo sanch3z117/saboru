@@ -159,6 +159,16 @@ La app no es un tablero SaaS. Es la cartelera de comida del campus: papel crema,
 - **Rating:** el local usa el promedio de productos con al menos 5 reseñas; si no hay datos, “Sin reseñas suficientes” en lista y mapa.
 - **Estados:** carga con skeletons, vacío con “Limpiar filtros”, error con reintento, permiso denegado con bloque por defecto, sin conexión con la lista en memoria y mapa retirado.
 
+### Cartelera y fichas
+
+- **Home editorial:** una card grande y dos secundarias en la banda de Destacados; no una cuadrícula de cards idénticas. “Cómo funciona” usa tres pasos numerados porque son una secuencia real.
+- **Cards:** foto con marco, nombre, categoría, precio desde, distancia, estrellas, abierto/cerrado y CTA. “Destacado” es plan; “Activo” es estado. **“Verificado” no se usa para locales activos**, solo para reseñas verificadas o un flag real futuro.
+- **Ficha de local:** foto principal, rating agregado, estado, distancia, mapa existente con un marcador, “Cómo llegar” (Google Maps/OSM), horario, productos con foto y reseñas.
+- **Ficha de producto:** foto, precio grande, local, distancia, estrellas, criterios, “Guardar”, “Calificar”, formulario de estrellas y reseñas. Los campos, la validación y la recarga segura no cambian.
+- **Estrellas:** `RatingStars` para lectura y `StarRatingInput` para los cinco criterios; siempre con valor y conteo en texto accesible. La insignia “Reseña verificada” lleva icono de check.
+- **Favorito:** el servidor manda si está disponible; una operación offline solo gana si es posterior a la carga. La copia local se usa sin servidor.
+- **OG:** `generateMetadata` y `opengraph-image` por local/producto, 1200×630, foto o fallback de marca, sin datos privados.
+
 ### Estados obligatorios
 
 Toda pantalla nueva define: carga (skeleton con forma real), vacío (explica y ofrece una acción), error (mensaje claro + reintento), sin permiso de ubicación (aviso y centro del campus), sin conexión (sin mapa, distancia en texto), 404 y auth con la misma marca. El estado nunca se comunica solo con color.
@@ -190,7 +200,7 @@ Solo para confirmar una acción (guardar, publicar, seleccionar marcador) o reve
 - La UI pública resuelve toda foto con `photoSrc` (`src/lib/photos.ts`): acepta una ruta de Storage, una URL absoluta o un archivo de `public/`. Nunca se concatena el bucket a mano.
 - En la base, `establishments.photos` y `products.photo_url` guardan rutas de Storage. La UI usa `next/image` cuando corresponda y siempre con marco de marca, `sizes` y texto alternativo útil (nombre del plato o del local, no “imagen”).
 - Si no hay foto o falla la carga, se usa `PhotoPlaceholder`; no se deja un hueco roto.
-- Las fotos demo son de Unsplash/Pexels con licencia, se convierten a WebP y se suben al bucket local. Su crédito vive en `docs/demo/CREDITS.md` y se pueden reemplazar por fotos propias sin tocar el código.
+- Las fotos demo son de Unsplash/Pexels con licencia, se convierten a WebP y se suben al bucket local con `npm run demo:photos` (local-only, `--dry-run`, nunca en CI/producción). Su crédito vive en `docs/demo/CREDITS.md` y se pueden reemplazar por fotos propias sin tocar el código.
 - No usar fotos de restaurantes reales sin permiso ni sugerir que el local del seed es real.
 
 ## Checklist para la Fase 0 y la UI

@@ -12,7 +12,7 @@ vi.mock("@/components/discovery/discovery-surface", () => ({
 }));
 
 vi.mock("@/server/queries/catalog", () => ({
-  getFeaturedEstablishments: async () => [],
+  getFeaturedEstablishmentCards: async () => [],
 }));
 
 describe("HomePage", () => {

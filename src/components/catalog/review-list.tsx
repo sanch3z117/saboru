@@ -1,8 +1,12 @@
-import { formatDate, formatRating } from "@/lib/format";
+import { CheckCircle2 } from "lucide-react";
+
+import { formatDate } from "@/lib/format";
 import { reviewAverage } from "@/lib/reviews/stats";
 import type { PublicReviewRow } from "@/types/catalog";
 
 import { ReportForm } from "@/components/reviews/report-form";
+
+import { RatingStars } from "./rating-stars";
 
 export function ReviewList({
   reviews,
@@ -30,13 +34,16 @@ export function ReviewList({
         return (
           <li key={review.id} className="border-b border-carbon/15 py-4">
             <div className="flex flex-wrap items-center gap-3 text-sm">
-              <span className="font-display text-base font-semibold">
-                {formatRating(reviewAverage(review))} / 5
-              </span>
+              <RatingStars
+                value={reviewAverage(review)}
+                showCount={false}
+                size="sm"
+              />
               <span className="text-carbon/60">
                 {formatDate(review.created_at)}
               </span>
-              <span className="bg-verified-soft px-2 py-0.5 text-xs font-semibold text-verified-ink">
+              <span className="inline-flex items-center gap-1 bg-verified-soft px-2 py-0.5 text-xs font-semibold text-verified-ink">
+                <CheckCircle2 aria-hidden="true" className="size-3.5" />
                 Reseña verificada
               </span>
               {isOwn ? (

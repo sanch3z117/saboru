@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 
+import { StarRatingInput } from "@/components/reviews/star-rating-input";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -98,34 +99,13 @@ export function ReviewForm({
 
       <div className="grid gap-4 sm:grid-cols-2">
         {RATINGS.map((rating) => (
-          <fieldset
+          <StarRatingInput
             key={rating.name}
-            className="rounded-panel border border-carbon/20 p-3"
-          >
-            <legend className="px-1 text-sm font-medium text-carbon">
-              {rating.label}
-            </legend>
-            <div className="mt-1 flex flex-wrap gap-2">
-              {[1, 2, 3, 4, 5].map((value) => (
-                <label
-                  key={value}
-                  className="flex items-center gap-1 text-sm text-carbon"
-                >
-                  <input
-                    type="radio"
-                    name={rating.name}
-                    value={value}
-                    required
-                    defaultChecked={
-                      initial?.[rating.name as keyof typeof initial] === value
-                    }
-                    className="size-4 accent-carbon"
-                  />
-                  {value}
-                </label>
-              ))}
-            </div>
-          </fieldset>
+            name={rating.name}
+            label={rating.label}
+            defaultValue={initial?.[rating.name]}
+            required
+          />
         ))}
       </div>
 

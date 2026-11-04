@@ -30,11 +30,11 @@ const contentSecurityPolicy = [
   "form-action 'self'",
   "frame-ancestors 'none'",
   "manifest-src 'self'",
-  "img-src 'self' data: blob: https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://api.maptiler.com https://*.maptiler.com https://*.supabase.co",
+  "img-src 'self' data: blob: https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://api.maptiler.com https://*.maptiler.com https://*.supabase.co http://127.0.0.1:54321 http://localhost:54321",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self' data:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://api.maptiler.com https://*.maptiler.com",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://api.maptiler.com https://*.maptiler.com http://127.0.0.1:54321 http://localhost:54321 ws://127.0.0.1:54321 ws://localhost:54321",
   "worker-src 'self' blob:",
 ].join("; ");
 

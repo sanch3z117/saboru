@@ -22,6 +22,9 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "http://127.0.0.1:3000",
+  ),
   title: {
     default: "SaborU · Antojo con criterio",
     template: "%s · SaborU",
