@@ -4,6 +4,8 @@ import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import { Client } from "pg";
 
+import { PRIVACY_VERSION } from "../../src/lib/auth/privacy";
+
 const MAILPIT_URL = process.env.MAILPIT_URL ?? "http://127.0.0.1:54324";
 const DB_URL =
   process.env.SUPABASE_DB_URL ??
@@ -280,13 +282,22 @@ test.describe("autenticación", () => {
       await expect(page.getByRole("button", { name: "Salir" })).toBeVisible();
 
       const account = await withDb(async (client) => {
-        const result = await client.query<{ id: string; role: string }>(
-          "select id, role from public.profiles where email = $1",
+        const result = await client.query<{
+          id: string;
+          role: string;
+          privacy_accepted_at: string | null;
+          privacy_version: string | null;
+        }>(
+          `select id, role, privacy_accepted_at, privacy_version
+           from public.profiles
+           where email = $1`,
           [email],
         );
         return result.rows[0];
       });
       expect(account?.role).toBe("student");
+      expect(account?.privacy_accepted_at).not.toBeNull();
+      expect(account?.privacy_version).toBe(PRIVACY_VERSION);
 
       await seedLocalUserData(page, account!.id);
       let dialogMessage = "";
@@ -452,8 +463,15 @@ test.describe("autenticación", () => {
       ).toBeVisible();
 
       const state = await withDb(async (client) => {
-        const profile = await client.query<{ id: string; role: string }>(
-          "select id, role from public.profiles where email = $1",
+        const profile = await client.query<{
+          id: string;
+          role: string;
+          privacy_accepted_at: string | null;
+          privacy_version: string | null;
+        }>(
+          `select id, role, privacy_accepted_at, privacy_version
+           from public.profiles
+           where email = $1`,
           [vendorEmail],
         );
         const invite = await client.query<{ accepted_by: string | null }>(
@@ -466,12 +484,16 @@ test.describe("autenticación", () => {
         );
         return {
           role: profile.rows[0]?.role,
+          privacyAcceptedAt: profile.rows[0]?.privacy_accepted_at,
+          privacyVersion: profile.rows[0]?.privacy_version,
           acceptedBy: invite.rows[0]?.accepted_by,
           ownerId: establishment.rows[0]?.owner_id,
         };
       });
 
       expect(state.role).toBe("vendor");
+      expect(state.privacyAcceptedAt).not.toBeNull();
+      expect(state.privacyVersion).toBe(PRIVACY_VERSION);
       expect(state.acceptedBy).toBeTruthy();
       expect(state.ownerId).toBe(state.acceptedBy);
     } finally {

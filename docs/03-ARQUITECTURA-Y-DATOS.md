@@ -77,13 +77,15 @@ saboru/
 
 ### `profiles`
 
-| Campo        | Tipo                              | Notas                                                       |
-| ------------ | --------------------------------- | ----------------------------------------------------------- |
-| `id`         | uuid PK                           | FK `auth.users.id` on delete cascade                        |
-| `role`       | enum `student \| vendor \| admin` | Lo fija el trigger; no editable por el usuario              |
-| `full_name`  | text                              | Único campo editable por el usuario                         |
-| `email`      | text unique                       | Copia informativa en minúsculas; **no** es fuente de verdad |
-| `created_at` | timestamptz                       |                                                             |
+| Campo                 | Tipo                              | Notas                                                                          |
+| --------------------- | --------------------------------- | ------------------------------------------------------------------------------ |
+| `id`                  | uuid PK                           | FK `auth.users.id` on delete cascade                                           |
+| `role`                | enum `student \| vendor \| admin` | Lo fija el trigger; no editable por el usuario                                 |
+| `full_name`           | text                              | Único campo editable por el usuario                                            |
+| `email`               | text unique                       | Copia informativa en minúsculas; **no** es fuente de verdad                    |
+| `privacy_accepted_at` | timestamptz                       | Copiado de `raw_user_meta_data` al crear el perfil; nulo en cuentas anteriores |
+| `privacy_version`     | text                              | Versión aceptada de la política (`src/lib/auth/privacy.ts`)                    |
+| `created_at`          | timestamptz                       |                                                                                |
 
 ```sql
 alter table public.profiles enable row level security;
@@ -140,22 +142,38 @@ language plpgsql security definer set search_path = '' as $$
 declare
   v_email text := lower(new.email);
   v_invite public.vendor_invites%rowtype;
+  v_privacy_accepted_at timestamptz :=
+    nullif(new.raw_user_meta_data->>'privacy_accepted_at', '')::timestamptz;
+  v_privacy_version text :=
+    nullif(new.raw_user_meta_data->>'privacy_version', '');
 begin
   select * into v_invite from public.vendor_invites
    where lower(email) = v_email and accepted_at is null and expires_at > now()
    limit 1;
 
   if found then
-    insert into public.profiles (id, role, email, full_name)
-    values (new.id, 'vendor', v_email, coalesce(new.raw_user_meta_data->>'full_name', ''));
+    insert into public.profiles (
+      id, role, email, full_name, privacy_accepted_at, privacy_version
+    )
+    values (
+      new.id, 'vendor', v_email,
+      coalesce(new.raw_user_meta_data->>'full_name', ''),
+      v_privacy_accepted_at, v_privacy_version
+    );
     update public.vendor_invites set accepted_at = now(), accepted_by = new.id where id = v_invite.id;
     update public.establishments e
        set owner_id = new.id
      where e.id = v_invite.establishment_id
        and e.owner_id is null;
   elsif v_email like '%@uptc.edu.co' then
-    insert into public.profiles (id, role, email, full_name)
-    values (new.id, 'student', v_email, coalesce(new.raw_user_meta_data->>'full_name', ''));
+    insert into public.profiles (
+      id, role, email, full_name, privacy_accepted_at, privacy_version
+    )
+    values (
+      new.id, 'student', v_email,
+      coalesce(new.raw_user_meta_data->>'full_name', ''),
+      v_privacy_accepted_at, v_privacy_version
+    );
   else
     raise exception 'email_domain_not_allowed' using errcode = 'P0001';
   end if;
@@ -535,7 +553,7 @@ UPSTASH_REDIS_REST_TOKEN=
 - Rate limit con Upstash, por usuario e IP: reseñas (p. ej. 10/hora), reportes (p. ej. 20/hora), `/api/sync`, registro de vistas y búsquedas. Valores iniciales ajustables.
 - Comentarios de reseñas: texto plano, sin HTML, longitud máxima; moderación por reportes.
 - Cabeceras en `next.config.ts`: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` y CSP **report-only** compatible con Next/MapLibre. HSTS solo en producción y sin `preload`. HTTPS y cookies `SameSite=Lax`.
-- Sin datos personales en analítica. `/privacidad` publica la política (Ley 1581 de 2012); el registro exige aceptar el consentimiento de forma explícita y el servidor lo valida.
+- Sin datos personales en analítica. `/privacidad` publica la política (Ley 1581 de 2012); el registro exige aceptar el consentimiento de forma explícita y el servidor lo valida. Los magic links envían `privacy_accepted_at` y `privacy_version` en `options.data`; `handle_new_user` los copia a `profiles` para dejar trazabilidad de la versión aceptada.
 - El service worker nunca guarda respuestas autenticadas (regla 13 de `AGENTS.md`).
 - Revisión manual antes de cada despliegue: auth, RLS, permisos por columna, RPC, caché del SW y variables de entorno.
 

@@ -261,6 +261,8 @@ export type Database = {
           email: string;
           full_name: string;
           id: string;
+          privacy_accepted_at: string | null;
+          privacy_version: string | null;
           role: Database["public"]["Enums"]["user_role"];
         };
         ComputedFields: never;
@@ -269,6 +271,8 @@ export type Database = {
           email: string;
           full_name?: string;
           id: string;
+          privacy_accepted_at?: string | null;
+          privacy_version?: string | null;
           role?: Database["public"]["Enums"]["user_role"];
         };
         Update: {
@@ -276,6 +280,8 @@ export type Database = {
           email?: string;
           full_name?: string;
           id?: string;
+          privacy_accepted_at?: string | null;
+          privacy_version?: string | null;
           role?: Database["public"]["Enums"]["user_role"];
         };
         Relationships: [];

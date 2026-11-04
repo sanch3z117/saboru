@@ -9,6 +9,7 @@ import {
   it,
 } from "vitest";
 
+import { PRIVACY_VERSION } from "../../src/lib/auth/privacy";
 import {
   asAuthenticated,
   countProfiles,
@@ -72,6 +73,30 @@ describe("registro y dominio institucional", () => {
     expect(profile?.email).toBe("estudiante.mayus@uptc.edu.co");
   });
 
+  it("copia la aceptación y la versión de privacidad al perfil nuevo", async () => {
+    const acceptedAt = "2026-11-03T15:30:00.000Z";
+    const id = await insertAuthUser(client, "consentimiento@uptc.edu.co", {
+      privacyAcceptedAt: acceptedAt,
+      privacyVersion: PRIVACY_VERSION,
+    });
+
+    const result = await client.query<{
+      privacy_accepted_at: string | null;
+      privacy_version: string | null;
+    }>(
+      `select privacy_accepted_at, privacy_version
+       from public.profiles
+       where id = $1`,
+      [id],
+    );
+
+    expect(result.rows[0]?.privacy_accepted_at).not.toBeNull();
+    expect(
+      new Date(result.rows[0]?.privacy_accepted_at ?? "").toISOString(),
+    ).toBe(acceptedAt);
+    expect(result.rows[0]?.privacy_version).toBe(PRIVACY_VERSION);
+  });
+
   it("acepta una invitación y crea el perfil vendor, no student", async () => {
     const adminId = await insertAuthUser(client, "admin@uptc.edu.co");
     await promoteToAdmin(client, adminId);
@@ -88,11 +113,27 @@ describe("registro y dominio institucional", () => {
       ),
     );
 
-    const vendorId = await insertAuthUser(client, vendorEmail);
+    const acceptedAt = "2026-11-03T16:00:00.000Z";
+    const vendorId = await insertAuthUser(client, vendorEmail, {
+      privacyAcceptedAt: acceptedAt,
+      privacyVersion: PRIVACY_VERSION,
+    });
     const profile = await getProfile(client, vendorId);
 
     expect(profile?.role).toBe("vendor");
     expect(profile?.email).toBe(vendorEmail);
+
+    const privacy = await client.query<{
+      privacy_accepted_at: string | null;
+      privacy_version: string | null;
+    }>(
+      `select privacy_accepted_at, privacy_version
+       from public.profiles
+       where id = $1`,
+      [vendorId],
+    );
+    expect(privacy.rows[0]?.privacy_version).toBe(PRIVACY_VERSION);
+    expect(privacy.rows[0]?.privacy_accepted_at).not.toBeNull();
 
     const invite = await client.query<InviteRow>(
       `select email, accepted_at, accepted_by

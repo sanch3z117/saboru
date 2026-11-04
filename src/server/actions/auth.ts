@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import type { z } from "zod";
 
+import { PRIVACY_VERSION } from "@/lib/auth/privacy";
 import { emailSchema, studentEmailSchema } from "@/lib/auth/validation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -44,7 +45,13 @@ export async function requestStudentMagicLink(
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithOtp({
     email: parsed.data,
-    options: { emailRedirectTo: `${await getOrigin()}/auth/callback` },
+    options: {
+      emailRedirectTo: `${await getOrigin()}/auth/callback`,
+      data: {
+        privacy_accepted_at: new Date().toISOString(),
+        privacy_version: PRIVACY_VERSION,
+      },
+    },
   });
 
   if (error) {
@@ -116,7 +123,13 @@ export async function requestVendorMagicLink(
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithOtp({
     email: parsed.data,
-    options: { emailRedirectTo: `${await getOrigin()}/auth/callback` },
+    options: {
+      emailRedirectTo: `${await getOrigin()}/auth/callback`,
+      data: {
+        privacy_accepted_at: new Date().toISOString(),
+        privacy_version: PRIVACY_VERSION,
+      },
+    },
   });
 
   if (error) {

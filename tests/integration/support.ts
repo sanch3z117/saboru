@@ -23,18 +23,32 @@ export function createClient() {
 export async function insertAuthUser(
   client: Client,
   email: string,
-  options: { confirmed?: boolean; fullName?: string } = {},
+  options: {
+    confirmed?: boolean;
+    fullName?: string;
+    privacyAcceptedAt?: string;
+    privacyVersion?: string;
+  } = {},
 ) {
   const id = randomUUID();
 
   await client.query(
     `insert into auth.users (id, email, email_confirmed_at, raw_user_meta_data)
-     values ($1, $2, $3, jsonb_build_object('full_name', $4::text))`,
+     values (
+       $1, $2, $3,
+       jsonb_build_object(
+         'full_name', $4::text,
+         'privacy_accepted_at', $5::text,
+         'privacy_version', $6::text
+       )
+     )`,
     [
       id,
       email,
       options.confirmed === false ? null : new Date().toISOString(),
       options.fullName ?? "Persona de prueba",
+      options.privacyAcceptedAt ?? null,
+      options.privacyVersion ?? null,
     ],
   );
 

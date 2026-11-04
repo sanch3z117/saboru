@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { SiteHeader } from "@/components/layout/site-header";
+import { PRIVACY_VERSION } from "@/lib/auth/privacy";
 
 export const metadata: Metadata = {
   title: "Política de privacidad",
@@ -19,7 +20,8 @@ export default function PrivacyPage() {
           Política de privacidad
         </h1>
         <p className="mt-3 text-sm text-carbon/60">
-          Última actualización: 3 de noviembre de 2026.
+          Última actualización: 3 de noviembre de 2026 · Versión{" "}
+          {PRIVACY_VERSION}.
         </p>
 
         <div className="mt-8 flex flex-col gap-8 text-base leading-relaxed text-carbon/85">
