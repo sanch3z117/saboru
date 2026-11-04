@@ -32,6 +32,9 @@ export default defineConfig({
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
-    env: { E2E_SW_TEST: "1" },
+    env: {
+      E2E_SW_TEST: "1",
+      DEMO_ALLOW_ANY_EMAIL: process.env.DEMO_ALLOW_ANY_EMAIL ?? "",
+    },
   },
 });

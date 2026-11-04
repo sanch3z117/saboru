@@ -13,4 +13,12 @@ export const studentEmailSchema = emailSchema.refine(
   { message: "Usa tu correo institucional UPTC (@uptc.edu.co)" },
 );
 
+/**
+ * Esquema del registro de estudiante. Solo el modo demo relaja el dominio;
+ * el login, las invitaciones de vendedor y las reseñas no usan esta función.
+ */
+export function studentRegistrationEmailSchema(allowAnyEmail: boolean) {
+  return allowAnyEmail ? emailSchema : studentEmailSchema;
+}
+
 export const vendorEmailSchema = emailSchema;

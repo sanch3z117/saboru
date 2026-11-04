@@ -22,6 +22,7 @@
 - **Implementación:** una constante `ALLOWED_STUDENT_DOMAINS = ["uptc.edu.co"]`; validar en la UI y, sobre todo, en `handle_new_user()` y en `is_institutional_student()` contra `auth.users`.
 - **Por qué:** es el dominio oficial de la universidad, reduce reseñas falsas y evita pedir datos personales. Si la universidad usa un subdominio o alias, se agrega a la lista.
 - **Consecuencia:** un correo personal puede navegar el catálogo, pero no reseñar. El mensaje de error debe decir “Usa tu correo institucional UPTC”.
+- **Excepción de demo (Fase 8.1):** si `DEMO_ALLOW_ANY_EMAIL=true` en el servidor (solo Preview/demo), `requestStudentMagicLink` acepta cualquier correo y `/registro` muestra “Modo demo: puedes registrarte con cualquier correo”. La variable no lleva prefijo `NEXT_PUBLIC_`, no se define en Production y no cambia `handle_new_user()`, las políticas RLS ni la regla de reseñas: un correo externo sigue sin poder reseñar ni guardar favoritos. Sin la variable o con `false`, se mantiene `@uptc.edu.co`.
 
 ## 2. Supabase: plan Free con PostGIS en `extensions`
 

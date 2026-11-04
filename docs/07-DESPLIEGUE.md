@@ -32,6 +32,7 @@ Variables (Production, Preview y Development; los secretos no se versionan):
 - `NEXT_PUBLIC_MAPTILER_KEY`
 - `UPSTASH_REDIS_REST_URL`
 - `UPSTASH_REDIS_REST_TOKEN`
+- `DEMO_ALLOW_ANY_EMAIL=true` **solo en Preview/demo**; nunca en Production.
 
 No definir `RATE_LIMIT_DISABLED` ni `E2E_SW_TEST` en producción. `/api/e2e/sw-test` responde 404 cuando `E2E_SW_TEST` no vale `1`.
 
@@ -52,6 +53,17 @@ No definir `RATE_LIMIT_DISABLED` ni `E2E_SW_TEST` en producción. `/api/e2e/sw-t
 - El remitente es una dirección de Gmail ya verificada en Brevo. `uptc.edu.co` no se pudo usar como remitente porque su política DMARC exige autenticación de dominio por DNS; la cuenta admin sigue siendo institucional.
 - Brevo aceptó un envío de prueba al buzón admin. La entrega final se confirma revisando la bandeja y la carpeta de spam.
 - Límite de correos de Supabase con SMTP propio: 30 por hora (ajustable en Auth → Rate Limits).
+
+## Modo demo de correo (Fase 8.1)
+
+- `DEMO_ALLOW_ANY_EMAIL` es una variable de servidor (sin `NEXT_PUBLIC_`). Solo se configura en el entorno Preview/demo y vale exactamente `true`.
+- Con la bandera activa, `/registro` muestra “Modo demo: puedes registrarte con cualquier correo” y `requestStudentMagicLink` acepta cualquier correo. Sin la variable o con `false`, se mantiene `@uptc.edu.co`.
+- `handle_new_user()`, las políticas RLS y la regla de reseñas no cambian. Un correo externo sin invitación sigue sin crear perfil; para el demo se preparan cuentas concretas:
+  1. Crear la invitación del vendedor Gmail desde el panel admin (o insertarla en `vendor_invites`).
+  2. Aceptarla en `/registro/vendedor` con el magic link; el trigger crea el perfil `vendor` y asigna el local.
+  3. Para el admin Gmail, asignar `role='admin'` por SQL después de crear la cuenta: `update public.profiles set role = 'admin' where email = '...'`.
+- Las cuentas demo no se versionan. No se cambia el trigger, el SMTP ni el flujo PKCE.
+- Las reseñas y los favoritos siguen exigiendo correo institucional: el demo Gmail sirve para login, panel y admin; reseña y favorito se prueban con una cuenta `@uptc.edu.co`.
 
 ## Fotos demo
 

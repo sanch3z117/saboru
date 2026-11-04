@@ -10,6 +10,8 @@ const MAILPIT_URL = process.env.MAILPIT_URL ?? "http://127.0.0.1:54324";
 const DB_URL =
   process.env.SUPABASE_DB_URL ??
   "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
+const DEMO_MODE = process.env.DEMO_ALLOW_ANY_EMAIL === "true";
+const DEMO_NOTICE = "Modo demo: puedes registrarte con cualquier correo";
 
 function loadLocalEnv(): Record<string, string> {
   try {
@@ -66,6 +68,61 @@ async function createAuthUser(email: string) {
       [id, email],
     ),
   );
+  return id;
+}
+
+/**
+ * Crea un usuario externo solo para el E2E del modo demo. El trigger
+ * `handle_new_user` sigue rechazando correos fuera de @uptc.edu.co; aquí se
+ * desactiva únicamente para esta inserción de prueba, igual que el bypass
+ * documentado para crear la cuenta demo en el proyecto remoto.
+ */
+async function createExternalDemoUser(email: string) {
+  const id = randomUUID();
+  await withDb(async (client) => {
+    await client.query("set session_replication_role = replica");
+    try {
+      await client.query(
+        `insert into auth.users (
+           instance_id, id, aud, role, email, email_confirmed_at,
+           raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+           confirmation_token, recovery_token, email_change_token_new,
+           email_change
+         )
+         values (
+           '00000000-0000-0000-0000-000000000000', $1::uuid,
+           'authenticated', 'authenticated', $2::text, now(),
+           '{"provider":"email","providers":["email"]}',
+           '{"email_verified":true}', now(), now(), '', '', '', ''
+         )`,
+        [id, email],
+      );
+    } finally {
+      await client.query("set session_replication_role = default");
+    }
+    await client.query(
+      `insert into auth.identities (
+         id, provider_id, user_id, identity_data, provider,
+         last_sign_in_at, created_at, updated_at
+       )
+       values (
+         gen_random_uuid(), $1::text, $1::uuid,
+         jsonb_build_object(
+           'sub', $1::text,
+           'email', $2::text,
+           'email_verified', true,
+           'phone_verified', false
+         ),
+         'email', now(), now(), now()
+       )`,
+      [id, email],
+    );
+    await client.query(
+      `insert into public.profiles (id, role, email, full_name)
+       values ($1, 'student', $2, '')`,
+      [id, email],
+    );
+  });
   return id;
 }
 
@@ -158,7 +215,9 @@ async function submitMagicLink(
     await consent.check();
   }
   await page.getByRole("button", { name: button }).click();
-  await expect(page.getByRole("status")).toContainText("Revisa tu correo");
+  await expect(
+    page.getByRole("status").filter({ hasText: "Revisa tu correo" }),
+  ).toBeVisible();
 }
 
 async function seedLocalUserData(page: Page, userId: string) {
@@ -339,9 +398,12 @@ test.describe("autenticación", () => {
     page,
     browserName,
   }) => {
+    test.skip(DEMO_MODE, "el servidor corre con DEMO_ALLOW_ANY_EMAIL=true");
+
     const email = `e2e.ajeno.${browserName}.${randomUUID()}@gmail.com`;
 
     await page.goto("/registro");
+    await expect(page.getByTestId("demo-email-notice")).toHaveCount(0);
     await page.getByLabel("Correo electrónico").fill(email);
     await page
       .getByRole("checkbox", { name: /política de privacidad/i })
@@ -360,6 +422,51 @@ test.describe("autenticación", () => {
       return result.rows[0]?.count;
     });
     expect(count).toBe(0);
+  });
+
+  test("el aviso de modo demo sigue la bandera del servidor", async ({
+    page,
+  }) => {
+    await page.goto("/registro");
+
+    const notice = page.getByTestId("demo-email-notice");
+    if (DEMO_MODE) {
+      await expect(notice).toHaveText(DEMO_NOTICE);
+    } else {
+      await expect(notice).toHaveCount(0);
+    }
+  });
+
+  test("en modo demo acepta un correo externo ya preparado y completa el enlace", async ({
+    page,
+    browserName,
+  }) => {
+    test.skip(!DEMO_MODE, "requiere DEMO_ALLOW_ANY_EMAIL=true");
+
+    const email = `e2e.demo.${browserName}.${randomUUID()}@gmail.com`;
+    let userId = "";
+
+    try {
+      userId = await createExternalDemoUser(email);
+
+      await submitMagicLink(page, "/registro", email, "Crear cuenta");
+      const { link } = await getMagicLink(email);
+      await page.goto(link);
+
+      await expect(page).toHaveURL(/\/$/);
+      await expect(page.getByRole("button", { name: "Salir" })).toBeVisible();
+
+      const profile = await withDb(async (client) => {
+        const result = await client.query<{ role: string }>(
+          "select role from public.profiles where email = $1",
+          [email],
+        );
+        return result.rows[0];
+      });
+      expect(profile?.role).toBe("student");
+    } finally {
+      await deleteAuthUsers([userId].filter(Boolean));
+    }
   });
 
   test("el registro exige aceptar la política de privacidad", async ({

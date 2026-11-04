@@ -3,8 +3,12 @@
 import { headers } from "next/headers";
 import type { z } from "zod";
 
+import { demoEmailModeEnabled } from "@/lib/auth/demo";
 import { PRIVACY_VERSION } from "@/lib/auth/privacy";
-import { emailSchema, studentEmailSchema } from "@/lib/auth/validation";
+import {
+  emailSchema,
+  studentRegistrationEmailSchema,
+} from "@/lib/auth/validation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -37,7 +41,9 @@ export async function requestStudentMagicLink(
     };
   }
 
-  const parsed = studentEmailSchema.safeParse(formData.get("email"));
+  const parsed = studentRegistrationEmailSchema(
+    demoEmailModeEnabled(),
+  ).safeParse(formData.get("email"));
   if (!parsed.success) {
     return { error: firstIssue(parsed.error), sent: false };
   }

@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
+import { DEMO_EMAIL_NOTICE, demoEmailModeEnabled } from "@/lib/auth/demo";
 import { homeForRole } from "@/lib/auth/roles";
-import { emailSchema, studentEmailSchema } from "@/lib/auth/validation";
+import {
+  emailSchema,
+  studentEmailSchema,
+  studentRegistrationEmailSchema,
+} from "@/lib/auth/validation";
 
 describe("studentEmailSchema", () => {
   it("normaliza mayúsculas y espacios", () => {
@@ -29,6 +34,38 @@ describe("emailSchema", () => {
 
     expect(result.success).toBe(true);
     expect(result.data).toBe("vendedor@example.com");
+  });
+});
+
+describe("modo demo de correo", () => {
+  it("solo se activa con el valor exacto true", () => {
+    expect(demoEmailModeEnabled("true")).toBe(true);
+    expect(demoEmailModeEnabled("false")).toBe(false);
+    expect(demoEmailModeEnabled("TRUE")).toBe(false);
+    expect(demoEmailModeEnabled("")).toBe(false);
+    expect(demoEmailModeEnabled(undefined)).toBe(false);
+  });
+
+  it("mantiene la regla institucional cuando está apagado", () => {
+    const schema = studentRegistrationEmailSchema(false);
+
+    expect(schema.safeParse("persona@gmail.com").success).toBe(false);
+    expect(schema.safeParse("persona@uptc.edu.co").success).toBe(true);
+  });
+
+  it("acepta y normaliza correos externos cuando está encendido", () => {
+    const result = studentRegistrationEmailSchema(true).safeParse(
+      " Demo.Persona@Gmail.COM ",
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.data).toBe("demo.persona@gmail.com");
+  });
+
+  it("usa el aviso exacto acordado", () => {
+    expect(DEMO_EMAIL_NOTICE).toBe(
+      "Modo demo: puedes registrarte con cualquier correo",
+    );
   });
 });
 
