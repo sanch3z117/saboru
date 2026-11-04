@@ -157,7 +157,7 @@ export default async function AdminPage() {
         </header>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start lg:gap-8">
-          <aside className="lg:sticky lg:top-24">
+          <aside className="min-w-0 lg:sticky lg:top-24">
             <p className="mb-2 hidden px-1 text-xs font-semibold text-carbon/65 lg:block">
               Secciones
             </p>
