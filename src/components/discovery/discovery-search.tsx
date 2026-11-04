@@ -132,44 +132,55 @@ function BudgetRange({
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between gap-3">
-        <div
-          ref={trackRef}
-          className="relative h-12 flex-1 touch-none"
-          onPointerDown={start}
-          data-testid="budget-range"
-        >
-          <div className="absolute top-1/2 right-0 left-0 h-2 -translate-y-1/2 rounded-pill bg-carbon/15" />
-          <div
-            className="absolute top-1/2 h-2 -translate-y-1/2 rounded-pill bg-antojo"
-            style={{ left: `${minPosition}%`, right: `${100 - maxPosition}%` }}
-          />
-          {(["min", "max"] as const).map((thumb) => {
-            const value = thumb === "min" ? min : upper;
-            return (
-              <div
-                key={thumb}
-                role="slider"
-                tabIndex={0}
-                aria-label={thumb === "min" ? "Presupuesto mínimo" : "Presupuesto máximo"}
-                aria-valuemin={thumb === "min" ? MIN_TOTAL : min + STEP}
-                aria-valuemax={thumb === "min" ? upper - STEP : MAX_TOTAL}
-                aria-valuenow={value}
-                aria-valuetext={thumb === "max" && max === null ? "Sin límite" : formatPrice(value)}
-                onKeyDown={(event) => keyboard(thumb, event)}
-                className="absolute top-1/2 size-11 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-pill outline-none focus-visible:ring-2 focus-visible:ring-carbon"
-                style={{ left: `${(value / MAX_TOTAL) * 100}%`, zIndex: active === thumb ? 3 : 2 }}
-              >
-                <span className="absolute top-1/2 left-1/2 size-8 -translate-x-1/2 -translate-y-1/2 rounded-pill border-2 border-carbon bg-cream shadow-sm" />
-              </div>
-            );
-          })}
-        </div>
-        <output className="min-w-[7.5rem] text-right text-xs font-semibold text-carbon">
+      <div className="mb-1 flex justify-end">
+        <output className="text-right text-xs font-semibold text-carbon">
           {rangeLabel}
         </output>
       </div>
-      <div className="flex justify-between text-[10px] text-carbon/50">
+      <div
+        ref={trackRef}
+        className="relative mx-4 h-12 touch-none"
+        onPointerDown={start}
+        data-testid="budget-range"
+      >
+        <div className="absolute top-1/2 right-0 left-0 h-2 -translate-y-1/2 rounded-pill bg-carbon/15" />
+        <div
+          className="absolute top-1/2 h-2 -translate-y-1/2 rounded-pill bg-antojo"
+          style={{ left: `${minPosition}%`, right: `${100 - maxPosition}%` }}
+        />
+        {(["min", "max"] as const).map((thumb) => {
+          const value = thumb === "min" ? min : upper;
+          return (
+            <div
+              key={thumb}
+              role="slider"
+              tabIndex={0}
+              aria-label={
+                thumb === "min"
+                  ? "Presupuesto mínimo"
+                  : "Presupuesto máximo"
+              }
+              aria-valuemin={thumb === "min" ? MIN_TOTAL : min + STEP}
+              aria-valuemax={thumb === "min" ? upper - STEP : MAX_TOTAL}
+              aria-valuenow={value}
+              aria-valuetext={
+                thumb === "max" && max === null
+                  ? "Sin límite"
+                  : formatPrice(value)
+              }
+              onKeyDown={(event) => keyboard(thumb, event)}
+              className="absolute top-1/2 size-11 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-pill outline-none focus-visible:ring-2 focus-visible:ring-carbon"
+              style={{
+                left: `${(value / MAX_TOTAL) * 100}%`,
+                zIndex: active === thumb ? 3 : 2,
+              }}
+            >
+              <span className="absolute top-1/2 left-1/2 size-8 -translate-x-1/2 -translate-y-1/2 rounded-pill border-2 border-carbon bg-cream shadow-sm" />
+            </div>
+          );
+        })}
+      </div>
+      <div className="mx-4 flex justify-between text-[10px] text-carbon/50">
         <span>{formatPrice(MIN_TOTAL)}</span>
         <span>{formatPrice(MAX_TOTAL)}</span>
       </div>
@@ -266,18 +277,33 @@ export function DiscoverySearch({
         ) : null}
       </div>
 
-      <div className="flex items-center gap-2 rounded-card bg-cream p-3 shadow-sm">
-        <WalletCards aria-hidden="true" className="size-5 shrink-0 text-antojo" />
-        <span className="shrink-0 text-sm font-semibold text-carbon">Presupuesto:</span>
-        <BudgetRange
-          min={draft.minBudget}
-          max={draft.budget}
-          onChange={updateBudget}
-          onCommit={commitBudget}
-        />
-        <button type="button" aria-label="Abrir filtros avanzados" onClick={() => { setDraftQuery(query); setSheetOpen(true); }} className="inline-flex size-11 shrink-0 items-center justify-center rounded-pill bg-antojo text-carbon hover:bg-antojo/80">
-          <SlidersHorizontal aria-hidden="true" className="size-5" />
-        </button>
+      <div className="rounded-card bg-cream p-3 shadow-sm">
+        <div className="flex items-center gap-2">
+          <WalletCards
+            aria-hidden="true"
+            className="size-5 shrink-0 text-antojo"
+          />
+          <span className="text-sm font-semibold text-carbon">Presupuesto</span>
+          <button
+            type="button"
+            aria-label="Abrir filtros avanzados"
+            onClick={() => {
+              setDraftQuery(query);
+              setSheetOpen(true);
+            }}
+            className="ml-auto inline-flex size-11 shrink-0 items-center justify-center rounded-pill bg-antojo text-carbon hover:bg-antojo/80"
+          >
+            <SlidersHorizontal aria-hidden="true" className="size-5" />
+          </button>
+        </div>
+        <div className="mt-2">
+          <BudgetRange
+            min={draft.minBudget}
+            max={draft.budget}
+            onChange={updateBudget}
+            onCommit={commitBudget}
+          />
+        </div>
       </div>
 
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
