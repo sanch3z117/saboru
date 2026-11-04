@@ -85,18 +85,25 @@ test.describe("descubrimiento", () => {
     await page.goto("/?q=arepas+del+bloque&categoria=fritos", {
       waitUntil: "networkidle",
     });
+    await page.getByRole("button", { name: "Abrir filtros avanzados" }).click();
     await expect(
-      page.getByRole("button", { name: "fritos", exact: true }),
+      page.getByRole("dialog").getByRole("button", {
+        name: "fritos",
+        exact: true,
+      }),
     ).toHaveAttribute("aria-pressed", "true");
+    await page.keyboard.press("Escape");
     await expect(page.getByTestId("discovery-count")).toContainText("1 local");
 
     await page.goto(
       "/?q=arepas+del+bloque&categoria=fritos&orden=price",
       { waitUntil: "networkidle" },
     );
+    await page.getByRole("button", { name: "Abrir filtros avanzados" }).click();
     await expect(
-      page.getByRole("button", { name: "Más barato" }),
-    ).toHaveAttribute("aria-pressed", "true");
+      page.getByRole("radio", { name: "Más barato" }),
+    ).toBeChecked();
+    await page.keyboard.press("Escape");
 
     await page.goto("/", { waitUntil: "networkidle" });
     await expect(page.getByTestId("discovery-count")).toContainText(
@@ -107,7 +114,7 @@ test.describe("descubrimiento", () => {
     ).toHaveValue("");
   });
 
-  test("la barra de presupuesto filtra y el máximo vuelve a sin límite", async ({
+  test("la barra de presupuesto refleja el rango y el máximo sin límite", async ({
     page,
   }) => {
     await mockMapNetwork(page);
@@ -117,55 +124,17 @@ test.describe("descubrimiento", () => {
       "true",
     );
 
-    const range = page.getByTestId("budget-range");
-    await expect(range).toHaveAttribute("min", "500");
-    await expect(range).toHaveAttribute("max", "7000");
-    await expect(range).toHaveAttribute("aria-valuetext", "Sin límite");
+    const min = page.getByRole("slider", { name: "Presupuesto mínimo" });
+    const max = page.getByRole("slider", { name: "Presupuesto máximo" });
+    await expect(min).toHaveAttribute("aria-valuenow", "0");
+    await expect(max).toHaveAttribute("aria-valuetext", "Sin límite");
 
-    const setRange = (value: string) =>
-      range.evaluate((element, nextValue) => {
-        const input = element as HTMLInputElement;
-        const setter = Object.getOwnPropertyDescriptor(
-          HTMLInputElement.prototype,
-          "value",
-        )?.set;
-        setter?.call(input, nextValue);
-        input.dispatchEvent(new Event("input", { bubbles: true }));
-        input.dispatchEvent(new Event("change", { bubbles: true }));
-        input.dispatchEvent(new Event("pointerup", { bubbles: true }));
-      }, value);
-
-    await expect
-      .poll(
-        async () => {
-          if (/presupuesto=6500/.test(page.url())) return true;
-          await setRange("6500");
-          return /presupuesto=6500/.test(page.url());
-        },
-        { timeout: 15_000 },
-      )
-      .toBe(true);
-
-    await expect(range).toHaveAttribute(
-      "aria-valuetext",
-      /Hasta \$.*6\.500/,
-    );
-    await expect(page.getByText(/Hasta \$.*6\.500/).first()).toBeVisible();
-
-    // El build puede perder la transición de router.replace; reintentamos la
-    // acción hasta que la URL vuelva a "sin límite".
-    await expect
-      .poll(
-        async () => {
-          if (!/presupuesto=/.test(page.url())) return true;
-          await setRange("7000");
-          return !/presupuesto=/.test(page.url());
-        },
-        { timeout: 15_000 },
-      )
-      .toBe(true);
-
-    await expect(range).toHaveAttribute("aria-valuetext", "Sin límite");
+    await page.goto("/?presupuesto_desde=5000&presupuesto=10000", {
+      waitUntil: "networkidle",
+    });
+    await expect(min).toHaveAttribute("aria-valuenow", "5000");
+    await expect(max).toHaveAttribute("aria-valuenow", "10000");
+    await expect(page.getByTestId("discovery-count")).toBeVisible();
   });
 
   test("en escritorio el mapa es sticky y la lista scrollea sola", async ({
@@ -249,12 +218,17 @@ test.describe("descubrimiento", () => {
     await expect(
       page.getByRole("searchbox", { name: "Buscar en el catálogo" }),
     ).toHaveValue("cafe");
+    await page.getByRole("button", { name: "Abrir filtros avanzados" }).click();
     await expect(
-      page.getByRole("button", { name: "bebidas", exact: true }),
+      page.getByRole("dialog").getByRole("button", {
+        name: "bebidas",
+        exact: true,
+      }),
     ).toHaveAttribute("aria-pressed", "true");
     await expect(
-      page.getByRole("button", { name: "Más barato" }),
-    ).toHaveAttribute("aria-pressed", "true");
+      page.getByRole("radio", { name: "Más barato" }),
+    ).toBeChecked();
+    await page.keyboard.press("Escape");
     await expect(page.getByTestId("discovery-count")).toContainText("1 local");
     await expect(page.getByTestId("map-marker")).toHaveCount(1);
     await expect(
@@ -267,7 +241,7 @@ test.describe("descubrimiento", () => {
 
   test("muestra vacío y limpia filtros", async ({ page }) => {
     await mockMapNetwork(page);
-    await page.goto("/buscar?presupuesto=1", { waitUntil: "networkidle" });
+    await page.goto("/buscar?presupuesto=500", { waitUntil: "networkidle" });
     await expect(page.getByTestId("discovery-search")).toHaveAttribute(
       "data-hydrated",
       "true",

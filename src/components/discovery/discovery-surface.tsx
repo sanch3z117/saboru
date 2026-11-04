@@ -117,9 +117,14 @@ export function DiscoverySurface() {
       };
       const params = discoverySearchParams(next);
       const query = params.toString();
-      router.replace(`${pathname}${query ? `?${query}` : ""}`, {
-        scroll: false,
-      });
+      const target = `${pathname}${query ? `?${query}` : ""}`;
+      router.replace(target, { scroll: false });
+
+      // Reintento best-effort para el bug conocido de router.replace.
+      window.setTimeout(() => {
+        const current = `${window.location.pathname}${window.location.search}`;
+        if (current !== target) router.replace(target, { scroll: false });
+      }, 350);
     },
     [filters, pathname, queryInput, router],
   );

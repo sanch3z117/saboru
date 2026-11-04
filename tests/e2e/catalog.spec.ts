@@ -150,7 +150,7 @@ test.describe("catálogo", () => {
   });
 
   test("muestra el estado vacío sin resultados", async ({ page }) => {
-    await page.goto(`/buscar?bloque=${BLOCK_CENTRAL}&presupuesto=1`);
+    await page.goto(`/buscar?bloque=${BLOCK_CENTRAL}&presupuesto=500`);
 
     await expect(page.getByTestId("discovery-empty")).toContainText(
       "No encontramos resultados",

@@ -52,13 +52,18 @@ function BudgetRange({
   min: number;
   max: number | null;
   onChange: (range: { minBudget: number; budget: number | null }) => void;
-  onCommit?: () => void;
+  onCommit?: (range: { minBudget: number; budget: number | null }) => void;
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<"min" | "max" | null>(null);
+  const latestRef = useRef({ minBudget: min, budget: max });
   const [active, setActive] = useState<"min" | "max" | null>(null);
   const upper = max ?? MAX_TOTAL;
   const rangeLabel = `${formatPrice(min)} - ${max === null ? "Sin límite" : formatPrice(max)}`;
+
+  useEffect(() => {
+    if (!active) latestRef.current = { minBudget: min, budget: max };
+  }, [active, max, min]);
 
   const updateFromPointer = useCallback((clientX: number) => {
     const track = trackRef.current;
@@ -70,6 +75,7 @@ function BudgetRange({
     const next = thumb === "min"
       ? normalizeBudgetRange(rounded, upper)
       : normalizeBudgetRange(min, rounded >= MAX_TOTAL ? null : rounded);
+    latestRef.current = next;
     onChange(next);
   }, [min, onChange, upper]);
 
@@ -79,7 +85,7 @@ function BudgetRange({
     const end = () => {
       activeRef.current = null;
       setActive(null);
-      onCommit?.();
+      onCommit?.(latestRef.current);
     };
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", end);
@@ -113,10 +119,12 @@ function BudgetRange({
     else if (event.key === "End") value = MAX_TOTAL;
     else return;
     event.preventDefault();
-    onChange(thumb === "min"
+    const next = thumb === "min"
       ? normalizeBudgetRange(value, upper)
-      : normalizeBudgetRange(min, value >= MAX_TOTAL ? null : value));
-    onCommit?.();
+      : normalizeBudgetRange(min, value >= MAX_TOTAL ? null : value);
+    latestRef.current = next;
+    onChange(next);
+    onCommit?.(next);
   };
 
   const minPosition = (min / MAX_TOTAL) * 100;
@@ -195,7 +203,8 @@ export function DiscoverySearch({
   onClear: () => void;
 }) {
   const [sheetOpen, setSheetOpen] = useState(false);
-const [draftQuery, setDraftQuery] = useState(query);
+  const [hydrated, setHydrated] = useState(false);
+  const [draftQuery, setDraftQuery] = useState(query);
   const [draft, setDraft] = useState(() => ({
     minBudget: filters.minBudget,
     budget: filters.budget,
@@ -203,8 +212,9 @@ const [draftQuery, setDraftQuery] = useState(query);
     order: filters.order,
     openNow: filters.openNow,
   }));
-  const draftRef = useRef(draft);
-  draftRef.current = draft;
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
 
   useEffect(() => {
     setDraft({
@@ -219,21 +229,27 @@ const [draftQuery, setDraftQuery] = useState(query);
   const updateBudget = (range: { minBudget: number; budget: number | null }) => {
     setDraft((current) => ({ ...current, ...range }));
   };
-  const commitBudget = () => {
-    const current = draftRef.current;
+  const commitBudget = (range: {
+    minBudget: number;
+    budget: number | null;
+  }) => {
     onFiltersChange({
-      minBudget: current.minBudget,
-      budget: current.budget,
+      minBudget: range.minBudget,
+      budget: range.budget,
       page: 1,
     });
   };
   const count = activeCount({ ...filters, ...draft, q: sheetOpen ? draftQuery : query });
 
   return (
-    <div data-testid="discovery-search" className="space-y-3">
+    <div
+      data-testid="discovery-search"
+      data-hydrated={hydrated ? "true" : "false"}
+      className="space-y-3"
+    >
       <div className="relative">
         <Search aria-hidden="true" className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-carbon/60" />
-        <label htmlFor="descubrir-q" className="sr-only">Buscar comida</label>
+        <label htmlFor="descubrir-q" className="sr-only">Buscar en el catálogo</label>
         <Input
           id="descubrir-q"
           type="search"
