@@ -63,6 +63,7 @@ No definir `RATE_LIMIT_DISABLED` ni `E2E_SW_TEST` en producción. `/api/e2e/sw-t
   2. Aceptarla en `/registro/vendedor` con el magic link; el trigger crea el perfil `vendor` y asigna el local.
   3. Para el admin Gmail, asignar `role='admin'` por SQL después de crear la cuenta: `update public.profiles set role = 'admin' where email = '...'`.
 - Las cuentas demo no se versionan. No se cambia el trigger, el SMTP ni el flujo PKCE.
+- En Preview, `/auth/callback` redirige al host del deployment (`VERCEL_URL`) para no perder la cookie de sesión; en Production sigue usando `NEXT_PUBLIC_SITE_URL`.
 - Las reseñas y los favoritos siguen exigiendo correo institucional: el demo Gmail sirve para login, panel y admin; reseña y favorito se prueban con una cuenta `@uptc.edu.co`.
 
 ## Fotos demo

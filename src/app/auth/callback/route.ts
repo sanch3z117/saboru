@@ -1,11 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { homeForRole, type AppRole } from "@/lib/auth/roles";
+import { resolveAuthSiteUrl } from "@/lib/auth/site-url";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? origin;
+  const siteUrl = resolveAuthSiteUrl({ origin });
   const code = searchParams.get("code");
   const authError =
     searchParams.get("error_description") ?? searchParams.get("error");
