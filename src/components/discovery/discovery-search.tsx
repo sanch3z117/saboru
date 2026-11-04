@@ -6,19 +6,16 @@ import { useEffect, useState } from "react";
 import { Chip } from "@/components/ui/chip";
 import { Input } from "@/components/ui/input";
 import {
+  BUDGET_MAX_COP,
+  BUDGET_MIN_COP,
+  BUDGET_STEP_COP,
   DEFAULT_CATALOG_ORDER,
   ORDER_OPTIONS,
+  budgetForSlider,
   hasActiveDiscoveryFilters,
   type DiscoveryFilters,
 } from "@/lib/catalog/discovery";
 import { formatPrice } from "@/lib/format";
-
-const BUDGET_OPTIONS: { value: number | null; label: string }[] = [
-  { value: null, label: "Sin límite" },
-  { value: 5000, label: formatPrice(5000) },
-  { value: 10000, label: formatPrice(10000) },
-  { value: 15000, label: formatPrice(15000) },
-];
 
 export function DiscoverySearch({
   query,
@@ -36,10 +33,36 @@ export function DiscoverySearch({
   onClear: () => void;
 }) {
   const [hydrated, setHydrated] = useState(false);
+  const [budgetDraft, setBudgetDraft] = useState(() =>
+    budgetForSlider(filters.budget),
+  );
 
   useEffect(() => {
     setHydrated(true);
   }, []);
+
+  useEffect(() => {
+    setBudgetDraft(budgetForSlider(filters.budget));
+  }, [filters.budget]);
+
+  const committedBudget = budgetForSlider(filters.budget);
+  const pendingBudget = budgetDraft !== committedBudget;
+  const shownBudget = pendingBudget
+    ? budgetDraft
+    : filters.budget === null
+      ? null
+      : committedBudget;
+  const budgetLabel =
+    shownBudget === null
+      ? "Sin límite"
+      : `Hasta ${formatPrice(shownBudget)}`;
+
+  const commitBudget = (value: number) => {
+    const next = value >= BUDGET_MAX_COP ? null : value;
+    if (next !== filters.budget) {
+      onFiltersChange({ budget: next, page: 1 });
+    }
+  };
 
   return (
     <div
@@ -108,25 +131,58 @@ export function DiscoverySearch({
         ))}
       </div>
 
-      <div className="mt-2 flex flex-wrap items-center gap-2">
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
         <span className="text-xs font-semibold text-carbon/60">
           Presupuesto
         </span>
-        {BUDGET_OPTIONS.map((option) => (
-          <Chip
-            key={option.value ?? "all"}
-            asChild
-            tone={filters.budget === option.value ? "active" : "neutral"}
+
+        <div className="flex min-w-[220px] flex-1 flex-col gap-1">
+          <div className="flex items-center gap-3">
+            <input
+              id="descubrir-presupuesto"
+              data-testid="budget-range"
+              type="range"
+              min={BUDGET_MIN_COP}
+              max={BUDGET_MAX_COP}
+              step={BUDGET_STEP_COP}
+              value={budgetForSlider(budgetDraft)}
+              aria-label="Presupuesto máximo"
+              aria-valuetext={budgetLabel}
+              onChange={(event) => setBudgetDraft(Number(event.target.value))}
+              onPointerUp={(event) =>
+                commitBudget(Number(event.currentTarget.value))
+              }
+              onKeyUp={(event) =>
+                commitBudget(Number(event.currentTarget.value))
+              }
+              className="h-10 w-full max-w-xs cursor-pointer accent-antojo focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-carbon"
+            />
+            <output
+              htmlFor="descubrir-presupuesto"
+              className="min-w-[6.5rem] text-right text-xs font-semibold text-carbon"
+            >
+              {budgetLabel}
+            </output>
+          </div>
+          <div
+            aria-hidden="true"
+            className="flex w-full max-w-xs justify-between text-[10px] text-carbon/50"
           >
+            <span>{formatPrice(BUDGET_MIN_COP)}</span>
+            <span>{formatPrice(BUDGET_MAX_COP)}</span>
+          </div>
+        </div>
+
+        {filters.budget !== null ? (
+          <Chip asChild tone="neutral">
             <button
               type="button"
-              aria-pressed={filters.budget === option.value}
-              onClick={() => onFiltersChange({ budget: option.value, page: 1 })}
+              onClick={() => onFiltersChange({ budget: null, page: 1 })}
             >
-              {option.label}
+              Quitar tope
             </button>
           </Chip>
-        ))}
+        ) : null}
         <Chip asChild tone={filters.openNow ? "active" : "neutral"}>
           <button
             type="button"

@@ -107,6 +107,67 @@ test.describe("descubrimiento", () => {
     ).toHaveValue("");
   });
 
+  test("la barra de presupuesto filtra y el máximo vuelve a sin límite", async ({
+    page,
+  }) => {
+    await mockMapNetwork(page);
+    await page.goto("/", { waitUntil: "networkidle" });
+    await expect(page.getByTestId("discovery-search")).toHaveAttribute(
+      "data-hydrated",
+      "true",
+    );
+
+    const range = page.getByTestId("budget-range");
+    await expect(range).toHaveAttribute("min", "500");
+    await expect(range).toHaveAttribute("max", "7000");
+    await expect(range).toHaveAttribute("aria-valuetext", "Sin límite");
+
+    const setRange = (value: string) =>
+      range.evaluate((element, nextValue) => {
+        const input = element as HTMLInputElement;
+        const setter = Object.getOwnPropertyDescriptor(
+          HTMLInputElement.prototype,
+          "value",
+        )?.set;
+        setter?.call(input, nextValue);
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+        input.dispatchEvent(new Event("pointerup", { bubbles: true }));
+      }, value);
+
+    await expect
+      .poll(
+        async () => {
+          if (/presupuesto=6500/.test(page.url())) return true;
+          await setRange("6500");
+          return /presupuesto=6500/.test(page.url());
+        },
+        { timeout: 15_000 },
+      )
+      .toBe(true);
+
+    await expect(range).toHaveAttribute(
+      "aria-valuetext",
+      /Hasta \$.*6\.500/,
+    );
+    await expect(page.getByText(/Hasta \$.*6\.500/).first()).toBeVisible();
+
+    // El build puede perder la transición de router.replace; reintentamos la
+    // acción hasta que la URL vuelva a "sin límite".
+    await expect
+      .poll(
+        async () => {
+          if (!/presupuesto=/.test(page.url())) return true;
+          await setRange("7000");
+          return !/presupuesto=/.test(page.url());
+        },
+        { timeout: 15_000 },
+      )
+      .toBe(true);
+
+    await expect(range).toHaveAttribute("aria-valuetext", "Sin límite");
+  });
+
   test("en escritorio el mapa es sticky y la lista scrollea sola", async ({
     page,
   }) => {
@@ -216,10 +277,25 @@ test.describe("descubrimiento", () => {
       "No encontramos resultados",
     );
 
-    await page
-      .getByTestId("discovery-empty")
-      .getByRole("button", { name: "Limpiar filtros" })
-      .click();
+    // `router.replace` puede perder la transición en el build de producción
+    // (docs/03). Reintentamos la acción hasta que la URL quede limpia.
+    await expect
+      .poll(
+        async () => {
+          if (!/presupuesto=/.test(page.url())) return page.url();
+          const clear = page
+            .getByTestId("discovery-empty")
+            .getByRole("button", { name: "Limpiar filtros" });
+          if (await clear.count()) {
+            await clear.evaluate((button: HTMLButtonElement) => button.click());
+          }
+          return page.url();
+        },
+        { timeout: 15_000 },
+      )
+      .not.toMatch(/presupuesto=/);
+
+    await page.reload({ waitUntil: "networkidle" });
     await expect(page.getByTestId("discovery-count")).toContainText(
       "7 locales",
       { timeout: 10_000 },

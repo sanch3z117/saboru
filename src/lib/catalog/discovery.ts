@@ -1,6 +1,9 @@
 import type { CatalogOrder } from "./search";
 
 export const DISCOVERY_PAGE_SIZE = 50;
+export const BUDGET_MIN_COP = 500;
+export const BUDGET_MAX_COP = 7000;
+export const BUDGET_STEP_COP = 100;
 export const DEFAULT_CATALOG_ORDER: CatalogOrder = "distance";
 export const ORDER_OPTIONS: { value: CatalogOrder; label: string }[] = [
   { value: "distance", label: "Más cerca" },
@@ -22,6 +25,12 @@ export function parseBudgetValue(value: string | null | undefined) {
   if (!value) return null;
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+/** Posición de la barra de presupuesto; `null` representa "Sin límite". */
+export function budgetForSlider(value: number | null) {
+  if (value === null) return BUDGET_MAX_COP;
+  return Math.min(Math.max(value, BUDGET_MIN_COP), BUDGET_MAX_COP);
 }
 
 function parseOrder(value: string | null): CatalogOrder {

@@ -152,7 +152,7 @@ La app no es un tablero SaaS. Es la cartelera de comida del campus: papel crema,
 ### Descubrimiento map-first
 
 - **Una superficie:** `/` y `/buscar` comparten búsqueda sticky, chips y resultados; la home añade un hero compacto, no un buscador distinto.
-- **Buscador:** texto en plato, descripción, local o categoría; chips de categoría, presupuesto, “Abierto ahora” y orden; en móvil los chips hacen scroll horizontal.
+- **Buscador:** texto en plato, descripción, local o categoría; chips de categoría, "Abierto ahora" y orden. El presupuesto se ajusta con una barra de $500 a $7.000; el extremo derecho equivale a "Sin límite". En móvil los chips hacen scroll horizontal.
 - **Composición:** escritorio mapa 60% / lista 40%; tablet apilado; móvil mapa 46vh y lista debajo. La búsqueda queda sticky y no tapa el contenido.
 - **Lista:** agrupada por local, con rating agregado, distancia, precio desde y productos coincidentes como filas simples. No se adelantan las cards con foto de 7.5.3.
 - **Selección:** el marcador Pin-U selecciona el local y resalta su grupo; en móvil se abre un `Sheet` inferior con resumen y CTA “Ver ficha”. Cerrar devuelve el foco al mapa.

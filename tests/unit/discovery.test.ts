@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  BUDGET_MAX_COP,
+  BUDGET_MIN_COP,
+  BUDGET_STEP_COP,
+  budgetForSlider,
   discoverySearchParams,
   hasActiveDiscoveryFilters,
   parseDiscoveryFilters,
@@ -40,6 +44,14 @@ describe("filtros de descubrimiento en la URL", () => {
       blockId: null,
     });
     expect(hasActiveDiscoveryFilters(filters)).toBe(false);
+  });
+
+  it("mapea el presupuesto a la barra visible", () => {
+    expect(budgetForSlider(null)).toBe(BUDGET_MAX_COP);
+    expect(budgetForSlider(6500)).toBe(6500);
+    expect(budgetForSlider(100)).toBe(BUDGET_MIN_COP);
+    expect(budgetForSlider(10000)).toBe(BUDGET_MAX_COP);
+    expect(BUDGET_STEP_COP).toBe(100);
   });
 
   it("serializa solo lo distinto del estado por defecto", () => {
