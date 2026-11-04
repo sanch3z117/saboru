@@ -3,6 +3,7 @@ import { Suspense } from "react";
 
 import { DiscoverySkeleton } from "@/components/discovery/discovery-skeleton";
 import { DiscoverySurface } from "@/components/discovery/discovery-surface";
+import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SnapshotRefresher } from "@/components/offline/snapshot-refresher";
 import { parseBudgetValue } from "@/lib/catalog/discovery";
@@ -40,7 +41,10 @@ export default async function SearchPage({
       <SiteHeader />
       <SnapshotRefresher />
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-5 py-8 sm:px-8 sm:py-10">
+      <main
+        id="contenido"
+        className="mx-auto w-full max-w-6xl flex-1 px-5 py-8 sm:px-8 sm:py-10"
+      >
         <h1 className="font-display text-3xl font-extrabold tracking-tight text-carbon sm:text-4xl">
           Descubrir
         </h1>
@@ -55,6 +59,7 @@ export default async function SearchPage({
           </Suspense>
         </div>
       </main>
+      <SiteFooter />
     </div>
   );
 }

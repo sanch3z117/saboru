@@ -208,7 +208,7 @@ export function SyncProvider() {
     <div
       role="status"
       aria-live="polite"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-carbon bg-cream px-4 py-2"
+      className="pointer-events-auto border-t-2 border-carbon bg-cream px-4 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
     >
       <p className="mx-auto max-w-5xl text-sm font-medium text-carbon">
         {text}

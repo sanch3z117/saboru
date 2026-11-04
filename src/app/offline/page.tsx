@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { WifiOff } from "lucide-react";
 
+import { SaboruLogo } from "@/components/brand/saboru-logo";
+import { SiteFooter } from "@/components/layout/site-footer";
 import { OfflineCatalog } from "@/components/offline/offline-catalog";
 
 export const metadata: Metadata = {
@@ -9,17 +13,31 @@ export const metadata: Metadata = {
 
 export default function OfflinePage() {
   return (
-    <div className="min-h-dvh">
-      <header className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 pt-6 sm:px-8 sm:pt-8">
-        <p className="font-display text-lg font-extrabold tracking-tight text-carbon">
-          SaborU
-        </p>
-        <p className="text-sm font-medium text-carbon/60">Sin conexión</p>
+    <div className="flex min-h-dvh flex-col">
+      <header className="border-b-2 border-carbon bg-cream">
+        <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-3 sm:px-8">
+          <Link
+            href="/"
+            aria-label="SaborU, ir al inicio"
+            className="w-fit shrink-0"
+          >
+            <SaboruLogo className="h-9 w-auto sm:h-10" />
+          </Link>
+          <p className="inline-flex items-center gap-2 text-sm font-semibold text-carbon/70">
+            <WifiOff aria-hidden="true" className="size-4" />
+            Sin conexión
+          </p>
+        </div>
       </header>
 
-      <main className="mx-auto w-full max-w-5xl px-5 py-8 sm:px-8">
+      <main
+        id="contenido"
+        className="mx-auto w-full max-w-5xl flex-1 px-5 py-8 sm:px-8"
+      >
         <OfflineCatalog />
       </main>
+
+      <SiteFooter />
     </div>
   );
 }

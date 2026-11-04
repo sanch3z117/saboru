@@ -75,7 +75,7 @@ export function ServiceWorkerUpdate() {
   return (
     <div
       role="status"
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-carbon bg-cream px-4 py-3 shadow-[0_-2px_0_0_rgba(43,43,43,0.08)]"
+      className="pointer-events-auto border-t-2 border-carbon bg-cream px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-2px_0_0_rgba(43,43,43,0.08)]"
     >
       <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-3">
         <p className="max-w-[46ch] text-sm font-medium text-carbon">

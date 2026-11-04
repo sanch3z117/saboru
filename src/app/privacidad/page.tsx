@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { PRIVACY_VERSION } from "@/lib/auth/privacy";
 
@@ -14,7 +15,10 @@ export default function PrivacyPage() {
   return (
     <div className="flex min-h-dvh flex-col">
       <SiteHeader />
-      <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-10 sm:px-8">
+      <main
+        id="contenido"
+        className="mx-auto w-full max-w-3xl flex-1 px-5 py-10 sm:px-8"
+      >
         <p className="text-sm font-semibold text-carbon/60">SaborU</p>
         <h1 className="mt-1 font-display text-4xl font-extrabold tracking-tight text-carbon sm:text-5xl">
           Política de privacidad
@@ -164,6 +168,7 @@ export default function PrivacyPage() {
           </Link>
         </p>
       </main>
+      <SiteFooter />
     </div>
   );
 }

@@ -25,7 +25,7 @@ export function SessionMenu() {
     return (
       <Link
         href="/login"
-        className="text-sm font-semibold text-carbon underline underline-offset-4"
+        className="inline-flex h-9 items-center rounded-pill border-2 border-carbon bg-campus px-3 text-sm font-semibold text-carbon underline-offset-4 hover:brightness-95"
       >
         Entrar
       </Link>
@@ -35,7 +35,7 @@ export function SessionMenu() {
   return (
     <button
       type="button"
-      className="text-sm font-semibold text-carbon underline underline-offset-4"
+      className="inline-flex h-9 items-center rounded-pill border-2 border-carbon bg-cream px-3 text-sm font-semibold text-carbon underline-offset-4 hover:bg-campus/50"
       onClick={() => {
         void signOut();
       }}

@@ -11,6 +11,7 @@ import { ReviewList } from "@/components/catalog/review-list";
 import { StatsSummary } from "@/components/catalog/stats-summary";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { ViewerCache } from "@/components/offline/viewer-cache";
 import { ReviewForm } from "@/components/reviews/review-form";
@@ -101,7 +102,10 @@ export default async function ProductPage({
 
       <ViewerCache viewer={reviewContext.viewer} />
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-8 sm:px-8 sm:py-10">
+      <main
+        id="contenido"
+        className="mx-auto w-full max-w-5xl flex-1 px-5 py-8 sm:px-8 sm:py-10"
+      >
         {establishment ? (
           <Link
             href={`/establecimiento/${establishment.slug}`}
@@ -249,6 +253,7 @@ export default async function ProductPage({
           />
         </section>
       </main>
+      <SiteFooter />
     </div>
   );
 }

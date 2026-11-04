@@ -9,6 +9,7 @@ import { InviteForm } from "@/components/admin/invite-form";
 import { ReportActions } from "@/components/admin/report-actions";
 import { ReviewActions } from "@/components/admin/review-actions";
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import {
   ESTABLISHMENT_STATUS_LABELS,
@@ -92,7 +93,10 @@ export default async function AdminPage() {
     <div className="min-h-dvh">
       <SiteHeader />
 
-      <main className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-8">
+      <main
+        id="contenido"
+        className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-8"
+      >
         <AdminNotice />
         <AdminActionRefresh />
 
@@ -327,6 +331,7 @@ export default async function AdminPage() {
           </div>
         </div>
       </main>
+      <SiteFooter />
     </div>
   );
 }

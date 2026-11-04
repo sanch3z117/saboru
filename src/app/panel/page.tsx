@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { EstablishmentForm } from "@/components/vendor/establishment-form";
 import { PanelNotice } from "@/components/vendor/panel-notice";
@@ -70,7 +71,10 @@ export default async function VendorPanelPage() {
     return (
       <div className="min-h-dvh">
         <SiteHeader />
-        <main className="mx-auto w-full max-w-3xl px-5 py-12 sm:px-8">
+        <main
+          id="contenido"
+          className="mx-auto w-full max-w-3xl px-5 py-12 sm:px-8"
+        >
           <p className="text-sm font-semibold text-carbon/60">
             Panel del vendedor
           </p>
@@ -83,6 +87,7 @@ export default async function VendorPanelPage() {
             productos y ver tus estadísticas.
           </p>
         </main>
+        <SiteFooter />
       </div>
     );
   }
@@ -103,7 +108,10 @@ export default async function VendorPanelPage() {
     <div className="min-h-dvh">
       <SiteHeader />
 
-      <main className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-8">
+      <main
+        id="contenido"
+        className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-8"
+      >
         <PanelNotice />
 
         <header className="border-b border-carbon pb-6">
@@ -180,6 +188,7 @@ export default async function VendorPanelPage() {
           </aside>
         </div>
       </main>
+      <SiteFooter />
     </div>
   );
 }

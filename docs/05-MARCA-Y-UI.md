@@ -169,6 +169,16 @@ La app no es un tablero SaaS. Es la cartelera de comida del campus: papel crema,
 - **Favorito:** el servidor manda si está disponible; una operación offline solo gana si es posterior a la carga. La copia local se usa sin servidor.
 - **OG:** `generateMetadata` y `opengraph-image` por local/producto, 1200×630, foto o fallback de marca, sin datos privados.
 
+### Navegación y estados globales (7.5.4)
+
+- **Header sticky:** fondo crema con borde carbón, logo, navegación de escritorio (Buscar, Privacidad), sesión siempre visible (“Entrar”/“Salir”) y menú móvil con Inicio, Buscar, Privacidad y Sin conexión. El menú cierra al navegar o con Escape y respeta foco visible.
+- **Skip-link:** “Saltar al contenido” aparece al enfocar con teclado y apunta a `#contenido`; todo `main` lleva ese id.
+- **Footer global:** logo, lema, enlaces a buscar, privacidad, catálogo sin conexión y entrar. No promete afiliación oficial con la universidad.
+- **Auth:** panel lateral campus con logo y lema en escritorio; en móvil, logo arriba y formulario intacto. Sin cambios en la lógica de autenticación.
+- **Offline y requiere conexión:** logo de marca. La pantalla de requiere conexión es HTML estático precacheable, sin datos de sesión ni botones de cuenta.
+- **Error, 404 y carga:** mismo header/footer, mensaje claro, acción de reintento o vuelta al inicio, y skeletons con la forma real del contenido.
+- **Barras de estado:** sincronización offline y actualización del service worker comparten una pila fija inferior; se apilan, nunca se superponen.
+
 ### Estados obligatorios
 
 Toda pantalla nueva define: carga (skeleton con forma real), vacío (explica y ofrece una acción), error (mensaje claro + reintento), sin permiso de ubicación (aviso y centro del campus), sin conexión (sin mapa, distancia en texto), 404 y auth con la misma marca. El estado nunca se comunica solo con color.

@@ -49,10 +49,18 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${poppins.variable} font-sans antialiased`}
       >
+        <a
+          href="#contenido"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[60] focus:inline-flex focus:h-10 focus:items-center focus:rounded-pill focus:border-2 focus:border-carbon focus:bg-campus focus:px-4 focus:text-sm focus:font-semibold focus:text-carbon"
+        >
+          Saltar al contenido
+        </a>
         {children}
-        <SyncProvider />
+        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex flex-col">
+          <SyncProvider />
+          <ServiceWorkerUpdate />
+        </div>
         <ViewerRefresher />
-        <ServiceWorkerUpdate />
       </body>
     </html>
   );

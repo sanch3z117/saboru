@@ -10,6 +10,7 @@ import { ProductCard } from "@/components/catalog/product-card";
 import { RatingStars } from "@/components/catalog/rating-stars";
 import { ReviewList } from "@/components/catalog/review-list";
 import { Badge } from "@/components/ui/badge";
+import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import {
   scheduleFromJson,
@@ -150,7 +151,10 @@ export default async function EstablishmentPage({
     <div className="flex min-h-dvh flex-col">
       <SiteHeader />
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-8 sm:px-8 sm:py-10">
+      <main
+        id="contenido"
+        className="mx-auto w-full max-w-5xl flex-1 px-5 py-8 sm:px-8 sm:py-10"
+      >
         <Link
           href="/buscar"
           className="text-sm font-semibold text-carbon underline underline-offset-4"
@@ -331,6 +335,7 @@ export default async function EstablishmentPage({
           <ReviewList reviews={reviews} />
         </section>
       </main>
+      <SiteFooter />
     </div>
   );
 }
