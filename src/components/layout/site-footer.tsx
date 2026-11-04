@@ -12,7 +12,7 @@ const LINKS = [
 export function SiteFooter() {
   return (
     <footer className="mt-16 border-t-2 border-carbon bg-cream">
-      <div className="mx-auto grid w-full max-w-6xl gap-8 px-5 py-8 sm:px-8 md:grid-cols-[1.2fr_1fr]">
+      <div className="mx-auto grid w-full max-w-6xl gap-8 px-5 py-8 sm:px-8 lg:grid-cols-[1.2fr_1fr]">
         <div>
           <Link
             href="/"
@@ -28,7 +28,7 @@ export function SiteFooter() {
         </div>
 
         <nav aria-label="Enlaces del pie">
-          <ul className="grid gap-2 text-sm sm:grid-cols-2">
+          <ul className="grid gap-2 text-sm md:grid-cols-2">
             {LINKS.map((link) => (
               <li key={link.href}>
                 <Link

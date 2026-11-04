@@ -1,6 +1,7 @@
 "use client";
 
 import { Search, X } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { Chip } from "@/components/ui/chip";
 import { Input } from "@/components/ui/input";
@@ -34,10 +35,17 @@ export function DiscoverySearch({
   onFiltersChange: (patch: Partial<DiscoveryFilters>) => void;
   onClear: () => void;
 }) {
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
+
   return (
     <div
       data-testid="discovery-search"
-      className="sticky top-0 z-30 border-y-2 border-carbon bg-cream py-3"
+      data-hydrated={hydrated ? "true" : "false"}
+      className="border-y-2 border-carbon bg-cream py-3"
     >
       <div className="relative">
         <Search

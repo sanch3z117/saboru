@@ -14,37 +14,73 @@ export function EstablishmentCard({
   establishment,
   variant = "default",
   className,
+  onSelect,
+  selected = false,
 }: {
   establishment: EstablishmentCardData;
-  variant?: "default" | "featured";
+  variant?: "default" | "featured" | "list";
   className?: string;
+  onSelect?: () => void;
+  selected?: boolean;
 }) {
   const open = establishment.schedule
     ? isOpenAt(establishment.schedule, new Date())
     : null;
+  const isList = variant === "list";
 
   return (
     <article
       className={cn(
-        "flex flex-col overflow-hidden rounded-card border-2 border-carbon bg-cream",
+        "overflow-hidden rounded-card border-2 border-carbon bg-cream",
+        isList
+          ? "grid grid-cols-[112px_minmax(0,1fr)] sm:grid-cols-[136px_minmax(0,1fr)]"
+          : "flex flex-col",
         variant === "featured" && "shadow-hard",
+        selected && "ring-2 ring-antojo ring-offset-2 ring-offset-cream",
         className,
       )}
     >
       <div
         className={cn(
-          "relative w-full overflow-hidden border-b-2 border-carbon bg-cream",
-          variant === "featured" ? "aspect-[4/3]" : "aspect-[16/10]",
+          "relative overflow-hidden bg-cream",
+          isList
+            ? "h-full min-h-[132px] border-r-2 border-carbon"
+            : cn(
+                "w-full border-b-2 border-carbon",
+                variant === "featured" ? "aspect-[4/3]" : "aspect-[16/10]",
+              ),
         )}
       >
         <Photo
           path={establishment.photoPath}
           alt={`Foto de ${establishment.name}`}
-          sizes={variant === "featured" ? "(max-width: 1024px) 100vw, 50vw" : "(max-width: 640px) 100vw, 33vw"}
+          sizes={
+            isList
+              ? "(max-width: 640px) 112px, 136px"
+              : variant === "featured"
+                ? "(max-width: 1024px) 100vw, 50vw"
+                : "(max-width: 640px) 100vw, 33vw"
+          }
         />
+
+        {onSelect ? (
+          <button
+            type="button"
+            aria-label={`Ver ${establishment.name} en el mapa`}
+            aria-pressed={selected}
+            onClick={onSelect}
+            className={cn(
+              "absolute bottom-2 left-2 z-10 inline-flex items-center justify-center gap-1 rounded-pill border-2 border-carbon bg-cream/95 text-xs font-semibold text-carbon shadow-hard-sm hover:bg-campus focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-carbon",
+              isList ? "size-10" : "h-8 px-2.5",
+            )}
+          >
+            <MapPin aria-hidden="true" className="size-3.5" />
+            {isList ? null : selected ? "Seleccionado" : "Ver en mapa"}
+          </button>
+        ) : null}
       </div>
 
-      <div className="flex flex-1 flex-col p-4">
+      <div className={cn("flex min-w-0 flex-1 flex-col", isList ? "p-3" : "p-4")}>
         <div className="flex flex-wrap items-center gap-1.5">
           {establishment.plan !== "basic" ? (
             <Badge tone="campus">Destacado</Badge>
@@ -54,7 +90,12 @@ export function EstablishmentCard({
           ) : null}
         </div>
 
-        <h3 className="mt-2 font-display text-xl leading-snug font-semibold text-carbon">
+        <h3
+          className={cn(
+            "mt-2 font-display leading-snug font-semibold text-carbon",
+            isList ? "text-lg" : "text-xl",
+          )}
+        >
           <Link
             href={`/establecimiento/${establishment.slug}`}
             className="underline-offset-4 hover:underline"
@@ -63,7 +104,7 @@ export function EstablishmentCard({
           </Link>
         </h3>
 
-        <p className="mt-1 text-sm text-carbon/65">
+        <p className={cn("mt-1 text-carbon/65", isList ? "text-xs" : "text-sm")}>
           {establishment.category}
           {establishment.distanceMeters !== null ? (
             <>
@@ -81,6 +122,7 @@ export function EstablishmentCard({
           <RatingStars
             value={establishment.rating}
             reviewCount={establishment.reviewCount}
+            size={isList ? "sm" : "md"}
           />
           <span className="inline-flex items-center gap-1 text-xs text-carbon/60">
             <Clock aria-hidden="true" className="size-3.5" />
@@ -92,21 +134,34 @@ export function EstablishmentCard({
           </span>
         </div>
 
-        {establishment.description ? (
+        {!isList && establishment.description ? (
           <p className="mt-2 line-clamp-2 text-sm leading-snug text-carbon/70">
             {establishment.description}
           </p>
         ) : null}
 
-        <div className="mt-auto flex items-end justify-between gap-3 pt-4">
-          <p className="font-display text-lg font-semibold text-carbon">
+        <div
+          className={cn(
+            "mt-auto flex items-end justify-between gap-3",
+            isList ? "pt-2" : "pt-4",
+          )}
+        >
+          <p
+            className={cn(
+              "font-display font-semibold text-carbon",
+              isList ? "text-base" : "text-lg",
+            )}
+          >
             {establishment.priceFromCop !== null
               ? `Desde ${formatPrice(establishment.priceFromCop)}`
               : "Precio no disponible"}
           </p>
           <Link
             href={`/establecimiento/${establishment.slug}`}
-            className="inline-flex h-9 items-center justify-center rounded-pill border-2 border-carbon bg-antojo px-3 text-sm font-semibold text-carbon underline-offset-4 hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-carbon"
+            className={cn(
+              "inline-flex items-center justify-center rounded-pill border-2 border-carbon bg-antojo font-semibold text-carbon underline-offset-4 hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-carbon",
+              isList ? "h-8 px-2.5 text-xs" : "h-9 px-3 text-sm",
+            )}
           >
             Ver ficha
           </Link>

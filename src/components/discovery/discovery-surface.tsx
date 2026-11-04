@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { Alert } from "@/components/ui/alert";
@@ -40,6 +40,18 @@ const GEOLOCATION_OPTIONS: PositionOptions = {
   timeout: 8000,
   maximumAge: 60_000,
 };
+
+function promoteFeaturedGroup(groups: SearchPlaceGroup[]) {
+  const featuredIndex = groups.findIndex(
+    (group) => group.place.plan !== "basic",
+  );
+  if (featuredIndex <= 0) return groups;
+
+  const ordered = [...groups];
+  const [featured] = ordered.splice(featuredIndex, 1);
+  ordered.unshift(featured);
+  return ordered;
+}
 
 function isCatalogSnapshot(value: unknown): value is CatalogSnapshot {
   if (!value || typeof value !== "object") return false;
@@ -93,8 +105,14 @@ export function DiscoverySurface() {
 
   const geolocation = useGeolocation(GEOLOCATION_OPTIONS);
   const isMobile = useIsMobile();
+  const previousQueryRef = useRef(filters.q);
 
+  // Solo sincroniza cambios externos de la URL. En el montaje, el estado ya
+  // nace con `filters.q`; así una hidratación tardía no borra lo que la
+  // persona acaba de escribir.
   useEffect(() => {
+    if (previousQueryRef.current === filters.q) return;
+    previousQueryRef.current = filters.q;
     setQueryInput(filters.q);
   }, [filters.q]);
 
@@ -243,7 +261,12 @@ export function DiscoverySurface() {
   );
 
   const groups: SearchPlaceGroup[] = useMemo(
-    () => (snapshot ? groupSearchItemsByPlace(snapshot, pageData.items) : []),
+    () =>
+      snapshot
+        ? promoteFeaturedGroup(
+            groupSearchItemsByPlace(snapshot, pageData.items),
+          )
+        : [],
     [pageData.items, snapshot],
   );
 
@@ -336,7 +359,13 @@ export function DiscoverySurface() {
       ) : null}
 
       <div className={cn(DISCOVERY_GRID_CLASS, "mt-4")}>
-        <div className={DISCOVERY_MAP_FRAME_CLASS}>
+        <div
+          data-testid="discovery-map-frame"
+          className={cn(
+            DISCOVERY_MAP_FRAME_CLASS,
+            "lg:sticky lg:top-20 lg:self-start",
+          )}
+        >
           <h2 className="sr-only">Mapa del campus</h2>
           <CampusMapLoader
             places={places}
@@ -351,7 +380,10 @@ export function DiscoverySurface() {
           />
         </div>
 
-        <div className="min-w-0">
+        <div
+          data-testid="discovery-list"
+          className="min-w-0 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto lg:pr-2 lg:overscroll-contain"
+        >
           <DiscoveryResults
             groups={groups}
             totalProducts={pageData.items.length}

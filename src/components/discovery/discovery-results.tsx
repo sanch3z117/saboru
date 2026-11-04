@@ -1,13 +1,31 @@
 "use client";
 
-import { MapPin, Star } from "lucide-react";
 import Link from "next/link";
 
-import { ProductRow } from "@/components/catalog/product-row";
+import { EstablishmentCard } from "@/components/catalog/establishment-card";
 import { Button } from "@/components/ui/button";
-import { formatDistance, formatPrice, formatRating } from "@/lib/format";
+import type { EstablishmentCardData } from "@/lib/catalog/cards";
+import { formatPrice } from "@/lib/format";
 import type { SearchPlaceGroup } from "@/lib/map/places";
-import { cn } from "@/lib/utils";
+
+function cardFromGroup(group: SearchPlaceGroup): EstablishmentCardData {
+  const first = group.items[0];
+  return {
+    id: group.place.id,
+    slug: group.place.slug,
+    name: group.place.name,
+    description: first?.establishment_description ?? "",
+    category: group.place.category,
+    plan: group.place.plan,
+    status: "active",
+    photoPath: group.place.photoPath,
+    schedule: first?.establishment_schedule ?? null,
+    distanceMeters: group.place.distanceMeters,
+    priceFromCop: group.place.priceFromCop,
+    rating: group.place.rating,
+    reviewCount: group.place.reviewCount,
+  };
+}
 
 export function DiscoveryResults({
   groups,
@@ -63,70 +81,46 @@ export function DiscoveryResults({
           </Button>
         </div>
       ) : (
-        <ol className="mt-4 space-y-5">
-          {groups.map(({ place, items }) => {
+        <ol className="mt-4 space-y-4">
+          {groups.map((group, index) => {
+            const { place, items } = group;
             const selected = place.id === selectedId;
+            const firstFeatured =
+              index === 0 && place.plan !== "basic";
+
             return (
               <li
                 key={place.id}
                 id={`discovery-place-${place.id}`}
                 data-testid="discovery-place"
-                className={cn(
-                  "scroll-mt-44 border-b-2 border-carbon/15 pb-4",
-                  selected &&
-                    "rounded-card border-2 border-carbon bg-campus/20 p-3",
-                )}
+                className="scroll-mt-24 border-b-2 border-carbon/15 pb-4"
               >
-                <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
-                  <div className="min-w-0">
-                    <button
-                      type="button"
-                      aria-pressed={selected}
-                      aria-label={`Ver ${place.name} en el mapa`}
-                      onClick={() => onSelect(place.id)}
-                      className="text-left font-display text-lg leading-snug font-semibold text-carbon underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-carbon"
-                    >
-                      {place.name}
-                    </button>
-                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-carbon/70">
-                      <span>{place.category}</span>
-                      <span className="inline-flex items-center gap-1">
-                        <MapPin aria-hidden="true" className="size-3.5" />
-                        {formatDistance(place.distanceMeters)}
-                      </span>
-                      <span className="inline-flex items-center gap-1">
-                        <Star
-                          aria-hidden="true"
-                          className="size-3.5 fill-antojo text-antojo"
-                        />
-                        {place.rating
-                          ? `${formatRating(place.rating)} (${place.reviewCount})`
-                          : "Sin reseñas suficientes"}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-sm font-semibold text-carbon">
-                      {place.priceFromCop
-                        ? `Desde ${formatPrice(place.priceFromCop)}`
-                        : "Precio no disponible"}
-                      <span className="font-normal text-carbon/60">
-                        {" "}
-                        · {items.length}{" "}
-                        {items.length === 1 ? "coincidencia" : "coincidencias"}
-                      </span>
-                    </p>
-                  </div>
+                <EstablishmentCard
+                  establishment={cardFromGroup(group)}
+                  variant={firstFeatured ? "featured" : "list"}
+                  selected={selected}
+                  onSelect={() => onSelect(place.id)}
+                />
 
-                  <Link
-                    href={`/establecimiento/${place.slug}`}
-                    className="text-sm font-semibold text-carbon underline underline-offset-4 hover:no-underline"
-                  >
-                    Ver ficha
-                  </Link>
-                </div>
-
-                <ul className="mt-2">
+                <ul
+                  aria-label={`Menú de ${place.name}`}
+                  className="mt-1 divide-y divide-carbon/10 border-t-2 border-carbon/15"
+                >
                   {items.map((item) => (
-                    <ProductRow key={item.id} item={item} />
+                    <li
+                      key={item.id}
+                      className="flex items-baseline justify-between gap-3 py-1.5"
+                    >
+                      <Link
+                        href={`/producto/${item.id}`}
+                        className="min-w-0 truncate text-sm font-medium text-carbon underline-offset-4 hover:underline"
+                      >
+                        {item.name}
+                      </Link>
+                      <span className="shrink-0 font-display text-sm font-semibold text-carbon">
+                        {formatPrice(item.price_cop)}
+                      </span>
+                    </li>
                   ))}
                 </ul>
               </li>

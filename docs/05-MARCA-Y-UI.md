@@ -169,6 +169,15 @@ La app no es un tablero SaaS. Es la cartelera de comida del campus: papel crema,
 - **Favorito:** el servidor manda si está disponible; una operación offline solo gana si es posterior a la carga. La copia local se usa sin servidor.
 - **OG:** `generateMetadata` y `opengraph-image` por local/producto, 1200×630, foto o fallback de marca, sin datos privados.
 
+### Jerarquía del descubrimiento (7.5.6)
+
+- **Un grupo por local:** cada resultado abre con una `EstablishmentCard` (foto, rating, distancia, precio desde, abierto/cerrado y CTA) y debajo un menú compacto de productos con nombre y precio. Los estados de reseñas y horario viven una sola vez en la cabecera del local, no en cada producto.
+- **Primer plano:** el primer local con plan destacado se promueve al inicio del listado y usa la variante destacada; el resto usa la card compacta. Así las fotos aparecen en la primera pantalla del listado, no sólo en la banda editorial.
+- **Escritorio:** mapa al 60 % y lista al 40 %. El mapa queda sticky bajo el header y la lista tiene scroll independiente; la página no necesita dos scrolls para recorrer los resultados.
+- **Móvil:** mapa de 40vh al inicio y sheet para el marcador seleccionado; después, la lista fluye con el scroll de la página.
+- **Header móvil:** navegación visible (Buscar), logo con más presencia, sesión discreta y menú para el resto de enlaces. El CTA de la ficha no compite con la navegación.
+- **Cómo funciona y footer:** se apilan en una columna hasta `lg`; no se fuerzan tres columnas apretadas en móvil.
+
 ### Navegación y estados globales (7.5.4)
 
 - **Header sticky:** fondo crema con borde carbón, logo, navegación de escritorio (Buscar, Privacidad), sesión siempre visible (“Entrar”/“Salir”) y menú móvil con Inicio, Buscar, Privacidad y Sin conexión. El menú cierra al navegar o con Escape y respeta foco visible.

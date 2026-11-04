@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 test("header sticky con navegación, sesión y footer global", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/", { waitUntil: "networkidle" });
 
   const header = page.getByRole("banner");
   await expect(header).toBeVisible();
@@ -20,6 +20,7 @@ test("header sticky con navegación, sesión y footer global", async ({
     await expect(
       header.getByRole("button", { name: "Abrir menú" }),
     ).toBeVisible();
+    await expect(header.getByRole("link", { name: "Buscar" })).toBeVisible();
   } else {
     await expect(header.getByRole("link", { name: "Buscar" })).toBeVisible();
     await expect(

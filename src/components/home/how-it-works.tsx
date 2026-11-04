@@ -30,7 +30,7 @@ export function HowItWorks() {
           Tres pasos para elegir sin dar vueltas.
         </p>
       </div>
-      <ol className="mt-6 grid gap-6 sm:grid-cols-3">
+      <ol className="mt-6 grid gap-5 lg:grid-cols-3">
         {STEPS.map((step, index) => (
           <li key={step.title} className="flex gap-3">
             <span className="font-display text-2xl leading-none font-extrabold text-antojo">
