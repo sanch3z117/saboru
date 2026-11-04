@@ -18,7 +18,7 @@ export function EstablishmentCard({
   selected = false,
 }: {
   establishment: EstablishmentCardData;
-  variant?: "default" | "featured" | "list";
+  variant?: "default" | "featured" | "list" | "band";
   className?: string;
   onSelect?: () => void;
   selected?: boolean;
@@ -27,6 +27,7 @@ export function EstablishmentCard({
     ? isOpenAt(establishment.schedule, new Date())
     : null;
   const isList = variant === "list";
+  const isBand = variant === "band";
 
   return (
     <article
@@ -35,6 +36,7 @@ export function EstablishmentCard({
         isList
           ? "grid grid-cols-[112px_minmax(0,1fr)] sm:grid-cols-[136px_minmax(0,1fr)]"
           : "flex flex-col",
+        isBand && "h-full",
         variant === "featured" && "shadow-hard",
         selected && "ring-2 ring-antojo ring-offset-2 ring-offset-cream",
         className,
@@ -45,10 +47,12 @@ export function EstablishmentCard({
           "relative overflow-hidden bg-cream",
           isList
             ? "h-full min-h-[132px] border-r-2 border-carbon"
-            : cn(
-                "w-full border-b-2 border-carbon",
-                variant === "featured" ? "aspect-[4/3]" : "aspect-[16/10]",
-              ),
+            : isBand
+              ? "h-44 w-full border-b-2 border-carbon sm:h-48"
+              : cn(
+                  "w-full border-b-2 border-carbon",
+                  variant === "featured" ? "aspect-[4/3]" : "aspect-[16/10]",
+                ),
         )}
       >
         <Photo
@@ -93,7 +97,7 @@ export function EstablishmentCard({
         <h3
           className={cn(
             "mt-2 font-display leading-snug font-semibold text-carbon",
-            isList ? "text-lg" : "text-xl",
+            isList || isBand ? "text-lg" : "text-xl",
           )}
         >
           <Link

@@ -23,18 +23,19 @@ export function FeaturedBand({
       </div>
 
       {lead ? (
-        <div className="mt-5 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0 lg:grid-cols-[1.35fr_1fr] lg:items-start">
+        <div className="mt-5 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0 lg:grid-cols-[1.35fr_1fr_1fr] lg:items-stretch">
           <EstablishmentCard
             establishment={lead}
-            variant="featured"
-            className="w-[82vw] max-w-md shrink-0 snap-start sm:col-span-2 sm:w-auto sm:max-w-none lg:col-span-1"
+            variant="band"
+            className="w-[82vw] max-w-md shrink-0 snap-start shadow-hard sm:col-span-2 sm:w-auto sm:max-w-none lg:col-span-1 lg:h-full"
           />
-          <div className="flex shrink-0 gap-4 sm:col-span-2 sm:grid sm:grid-cols-2 lg:col-span-1 lg:grid-cols-1">
+          <div className="flex shrink-0 gap-4 sm:col-span-2 sm:grid sm:grid-cols-2 lg:contents">
             {rest.slice(0, 2).map((establishment) => (
               <EstablishmentCard
                 key={establishment.id}
                 establishment={establishment}
-                className="w-[70vw] max-w-sm shrink-0 snap-start sm:w-auto sm:max-w-none"
+                variant="band"
+                className="w-[70vw] max-w-sm shrink-0 snap-start sm:w-auto sm:max-w-none lg:h-full"
               />
             ))}
           </div>
