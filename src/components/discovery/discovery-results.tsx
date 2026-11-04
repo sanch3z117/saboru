@@ -42,17 +42,17 @@ export function DiscoveryResults({
 }) {
   return (
     <div className="min-w-0" aria-labelledby="resultados-titulo">
-      <div className="flex flex-wrap items-end justify-between gap-2">
+      <div className="flex flex-wrap items-end justify-between gap-2 border-b-2 border-carbon pb-3">
         <h2
           id="resultados-titulo"
-          className="font-display text-xl font-semibold text-carbon"
+          className="font-display text-2xl font-semibold text-carbon"
         >
           Resultados
         </h2>
         <p
           data-testid="discovery-count"
           aria-live="polite"
-          className="text-sm text-carbon/65"
+          className="rounded-pill border-2 border-carbon bg-cream px-3 py-1 text-xs font-semibold text-carbon"
         >
           {groups.length} {groups.length === 1 ? "local" : "locales"} ·{" "}
           {totalProducts} {totalProducts === 1 ? "producto" : "productos"}
@@ -81,7 +81,7 @@ export function DiscoveryResults({
           </Button>
         </div>
       ) : (
-        <ol className="mt-4 space-y-4">
+        <ol className="mt-5 space-y-5">
           {groups.map((group) => {
             const { place, items } = group;
             const selected = place.id === selectedId;
@@ -91,7 +91,7 @@ export function DiscoveryResults({
                 key={place.id}
                 id={`discovery-place-${place.id}`}
                 data-testid="discovery-place"
-                className="scroll-mt-24 border-b-2 border-carbon/15 pb-4"
+                className="scroll-mt-24 border-b-2 border-carbon/15 pb-5"
               >
                 <EstablishmentCard
                   establishment={cardFromGroup(group)}
@@ -102,12 +102,12 @@ export function DiscoveryResults({
 
                 <ul
                   aria-label={`Menú de ${place.name}`}
-                  className="mt-1 divide-y divide-carbon/10 border-t-2 border-carbon/15"
+                  className="mt-2 divide-y divide-carbon/15 border-t-2 border-carbon/20 px-1"
                 >
                   {items.map((item) => (
                     <li
                       key={item.id}
-                      className="flex items-baseline justify-between gap-3 py-1.5"
+                      className="flex items-baseline justify-between gap-3 py-2"
                     >
                       <Link
                         href={`/producto/${item.id}`}

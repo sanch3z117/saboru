@@ -63,9 +63,7 @@ export function DiscoverySearch({
       ? null
       : committedBudget;
   const budgetLabel =
-    shownBudget === null
-      ? "Sin límite"
-      : `Hasta ${formatPrice(shownBudget)}`;
+    shownBudget === null ? "Sin límite" : `Hasta ${formatPrice(shownBudget)}`;
 
   const commitBudget = (value: number) => {
     if (budgetTimerRef.current !== null) {
@@ -94,7 +92,7 @@ export function DiscoverySearch({
     <div
       data-testid="discovery-search"
       data-hydrated={hydrated ? "true" : "false"}
-      className="border-y-2 border-carbon bg-cream py-3"
+      className="rounded-card border-2 border-carbon bg-cream p-3 shadow-hard-sm sm:p-4"
     >
       <div className="relative">
         <Search
@@ -125,7 +123,7 @@ export function DiscoverySearch({
         ) : null}
       </div>
 
-      <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1">
+      <div className="mt-4 flex items-center gap-2 overflow-x-auto border-b border-carbon/20 pb-3">
         <Chip
           asChild
           tone={filters.category === null ? "active" : "neutral"}
@@ -157,10 +155,8 @@ export function DiscoverySearch({
         ))}
       </div>
 
-      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
-        <span className="text-xs font-semibold text-carbon/60">
-          Presupuesto
-        </span>
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-panel bg-campus/25 px-3 py-2">
+        <span className="text-sm font-semibold text-carbon">Presupuesto</span>
 
         <div className="flex min-w-[220px] flex-1 flex-col gap-1">
           <div className="flex items-center gap-3">
@@ -226,8 +222,8 @@ export function DiscoverySearch({
         </Chip>
       </div>
 
-      <div className="mt-2 flex flex-wrap items-center gap-2">
-        <span className="text-xs font-semibold text-carbon/60">Ordenar</span>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <span className="mr-1 text-sm font-semibold text-carbon">Ordenar</span>
         {ORDER_OPTIONS.map((option) => (
           <Chip
             key={option.value}

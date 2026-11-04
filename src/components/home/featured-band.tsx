@@ -9,25 +9,25 @@ export function FeaturedBand({
   const [lead, ...rest] = establishments;
 
   return (
-    <section aria-labelledby="destacado" className="mt-10">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
+    <section aria-labelledby="destacado" className="mt-12 sm:mt-14">
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b-2 border-carbon pb-3">
         <h2
           id="destacado"
-          className="font-display text-2xl font-semibold text-carbon"
+          className="font-display text-2xl font-semibold text-carbon sm:text-3xl"
         >
           Destacado
         </h2>
-        <p className="text-sm text-carbon/60">
+        <p className="max-w-[42ch] text-sm leading-relaxed text-carbon/70">
           Locales patrocinados, fuera del ranking.
         </p>
       </div>
 
       {lead ? (
-        <div className="mt-5 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0 lg:grid-cols-[1.35fr_1fr_1fr] lg:items-stretch">
+        <div className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-[1.25fr_1fr_1fr] lg:items-stretch">
           <EstablishmentCard
             establishment={lead}
             variant="band"
-            className="w-[82vw] max-w-md shrink-0 snap-start shadow-hard sm:col-span-2 sm:w-auto sm:max-w-none lg:col-span-1 lg:h-full"
+            className="w-[84vw] max-w-sm shrink-0 snap-start shadow-hard sm:col-span-2 sm:w-auto sm:max-w-none lg:col-span-1 lg:h-full"
           />
           <div className="flex shrink-0 gap-4 sm:col-span-2 sm:grid sm:grid-cols-2 lg:contents">
             {rest.slice(0, 2).map((establishment) => (
@@ -35,7 +35,7 @@ export function FeaturedBand({
                 key={establishment.id}
                 establishment={establishment}
                 variant="band"
-                className="w-[70vw] max-w-sm shrink-0 snap-start sm:w-auto sm:max-w-none lg:h-full"
+                className="w-[76vw] max-w-sm shrink-0 snap-start sm:w-auto sm:max-w-none lg:h-full"
               />
             ))}
           </div>

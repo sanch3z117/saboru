@@ -327,7 +327,7 @@ export function DiscoverySurface() {
   const fallbackName = activeBlock?.name ?? "el centro del campus";
 
   return (
-    <div>
+    <div className="space-y-1">
       <DiscoverySearch
         query={queryInput}
         onQueryChange={setQueryInput}
@@ -356,7 +356,7 @@ export function DiscoverySurface() {
         </p>
       ) : null}
 
-      <div className={cn(DISCOVERY_GRID_CLASS, "mt-4")}>
+      <div className={cn(DISCOVERY_GRID_CLASS, "mt-5 lg:gap-6")}>
         <div
           data-testid="discovery-map-frame"
           className={cn(
@@ -380,7 +380,7 @@ export function DiscoverySurface() {
 
         <div
           data-testid="discovery-list"
-          className="min-w-0 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto lg:pr-2 lg:overscroll-contain"
+          className="min-w-0 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto lg:overscroll-contain lg:pr-3"
         >
           <DiscoveryResults
             groups={groups}

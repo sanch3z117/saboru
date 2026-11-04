@@ -34,7 +34,7 @@ export function EstablishmentCard({
       className={cn(
         "overflow-hidden rounded-card border-2 border-carbon bg-cream",
         isList
-          ? "grid grid-cols-[112px_minmax(0,1fr)] sm:grid-cols-[136px_minmax(0,1fr)]"
+          ? "grid grid-cols-[104px_minmax(0,1fr)] sm:grid-cols-[160px_minmax(0,1fr)]"
           : "flex flex-col",
         isBand && "h-full",
         variant === "featured" && "shadow-hard",
@@ -46,7 +46,7 @@ export function EstablishmentCard({
         className={cn(
           "relative overflow-hidden bg-cream",
           isList
-            ? "h-full min-h-[132px] border-r-2 border-carbon"
+            ? "h-full min-h-[148px] border-r-2 border-carbon"
             : isBand
               ? "h-44 w-full border-b-2 border-carbon sm:h-48"
               : cn(
@@ -60,7 +60,7 @@ export function EstablishmentCard({
           alt={`Foto de ${establishment.name}`}
           sizes={
             isList
-              ? "(max-width: 640px) 112px, 136px"
+              ? "(max-width: 640px) 104px, 160px"
               : variant === "featured"
                 ? "(max-width: 1024px) 100vw, 50vw"
                 : "(max-width: 640px) 100vw, 33vw"
@@ -84,7 +84,12 @@ export function EstablishmentCard({
         ) : null}
       </div>
 
-      <div className={cn("flex min-w-0 flex-1 flex-col", isList ? "p-3" : "p-4")}>
+      <div
+        className={cn(
+          "flex min-w-0 flex-1 flex-col",
+          isList ? "p-3 sm:p-4" : "p-4",
+        )}
+      >
         <div className="flex flex-wrap items-center gap-1.5">
           {establishment.plan !== "basic" ? (
             <Badge tone="campus">Destacado</Badge>
@@ -108,7 +113,12 @@ export function EstablishmentCard({
           </Link>
         </h3>
 
-        <p className={cn("mt-1 text-carbon/65", isList ? "text-xs" : "text-sm")}>
+        <p
+          className={cn(
+            "mt-1 text-carbon/65",
+            isList ? "text-xs sm:text-sm" : "text-sm",
+          )}
+        >
           {establishment.category}
           {establishment.distanceMeters !== null ? (
             <>
@@ -153,7 +163,7 @@ export function EstablishmentCard({
           <p
             className={cn(
               "font-display font-semibold text-carbon",
-              isList ? "text-base" : "text-lg",
+              isList ? "text-sm sm:text-base" : "text-lg",
             )}
           >
             {establishment.priceFromCop !== null
@@ -164,7 +174,9 @@ export function EstablishmentCard({
             href={`/establecimiento/${establishment.slug}`}
             className={cn(
               "inline-flex items-center justify-center rounded-pill border-2 border-carbon bg-antojo font-semibold text-carbon underline-offset-4 hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-carbon",
-              isList ? "h-8 px-2.5 text-xs" : "h-9 px-3 text-sm",
+              isList
+                ? "h-8 px-2 sm:h-9 sm:px-3 sm:text-sm"
+                : "h-9 px-3 text-sm",
             )}
           >
             Ver ficha
