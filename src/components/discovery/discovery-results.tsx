@@ -82,11 +82,9 @@ export function DiscoveryResults({
         </div>
       ) : (
         <ol className="mt-4 space-y-4">
-          {groups.map((group, index) => {
+          {groups.map((group) => {
             const { place, items } = group;
             const selected = place.id === selectedId;
-            const firstFeatured =
-              index === 0 && place.plan !== "basic";
 
             return (
               <li
@@ -97,7 +95,7 @@ export function DiscoveryResults({
               >
                 <EstablishmentCard
                   establishment={cardFromGroup(group)}
-                  variant={firstFeatured ? "featured" : "list"}
+                  variant="list"
                   selected={selected}
                   onSelect={() => onSelect(place.id)}
                 />

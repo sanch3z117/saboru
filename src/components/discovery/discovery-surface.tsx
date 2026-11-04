@@ -41,18 +41,6 @@ const GEOLOCATION_OPTIONS: PositionOptions = {
   maximumAge: 60_000,
 };
 
-function promoteFeaturedGroup(groups: SearchPlaceGroup[]) {
-  const featuredIndex = groups.findIndex(
-    (group) => group.place.plan !== "basic",
-  );
-  if (featuredIndex <= 0) return groups;
-
-  const ordered = [...groups];
-  const [featured] = ordered.splice(featuredIndex, 1);
-  ordered.unshift(featured);
-  return ordered;
-}
-
 function isCatalogSnapshot(value: unknown): value is CatalogSnapshot {
   if (!value || typeof value !== "object") return false;
   const snapshot = value as Partial<CatalogSnapshot>;
@@ -261,12 +249,7 @@ export function DiscoverySurface() {
   );
 
   const groups: SearchPlaceGroup[] = useMemo(
-    () =>
-      snapshot
-        ? promoteFeaturedGroup(
-            groupSearchItemsByPlace(snapshot, pageData.items),
-          )
-        : [],
+    () => (snapshot ? groupSearchItemsByPlace(snapshot, pageData.items) : []),
     [pageData.items, snapshot],
   );
 

@@ -52,9 +52,11 @@ test.describe("descubrimiento", () => {
       "true",
     );
 
+    await expect(
+      page.getByRole("heading", { name: "Destacado" }),
+    ).toBeVisible();
     const firstGroup = page.getByTestId("discovery-place").first();
     await expect(firstGroup.getByRole("article")).toHaveCount(1);
-    await expect(firstGroup.getByText("Destacado", { exact: true })).toBeVisible();
     const menu = firstGroup.getByRole("list", { name: /Menú de/ });
     await expect(menu.getByRole("link").first()).toBeVisible();
     await expect(menu.getByText("Sin reseñas suficientes")).toHaveCount(0);

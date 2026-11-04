@@ -29,13 +29,14 @@ export default async function HomePage() {
           plato, local o categoría; el mapa y la lista se mueven juntos.
         </p>
 
-        <div className="mt-6">
+        <FeaturedBand establishments={featured} />
+
+        <div className="mt-8">
           <Suspense fallback={<DiscoverySkeleton />}>
             <DiscoverySurface />
           </Suspense>
         </div>
 
-        <FeaturedBand establishments={featured} />
         <HowItWorks />
       </main>
 
