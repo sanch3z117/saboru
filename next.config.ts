@@ -40,9 +40,44 @@ const contentSecurityPolicy = [
 
 const isProduction = process.env.NODE_ENV === "production";
 
+function supabaseImagePatterns(): NonNullable<
+  NonNullable<NextConfig["images"]>["remotePatterns"]
+> {
+  const configured = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const patterns: NonNullable<
+    NonNullable<NextConfig["images"]>["remotePatterns"]
+  > = [
+    {
+      protocol: "https",
+      hostname: "**.supabase.co",
+      pathname: "/storage/v1/object/public/**",
+    },
+  ];
+
+  if (configured) {
+    try {
+      const url = new URL(configured);
+      const protocol = url.protocol === "http:" ? "http" : "https";
+      patterns.unshift({
+        protocol,
+        hostname: url.hostname,
+        ...(url.port ? { port: url.port } : {}),
+        pathname: "/storage/v1/object/public/**",
+      });
+    } catch {
+      // Una URL inválida no debe romper el build; queda el patrón de Supabase.
+    }
+  }
+
+  return patterns;
+}
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  images: {
+    remotePatterns: supabaseImagePatterns(),
+  },
   async headers() {
     const securityHeaders: { key: string; value: string }[] = [
       { key: "X-Content-Type-Options", value: "nosniff" },

@@ -44,7 +44,7 @@ Antes de usar la API de Serwist, MapLibre, Supabase o Next.js, **consulta la doc
 
 - **Base de datos:** para migraciones, tablas, RLS, permisos por columna, triggers, vistas o RPC, carga y sigue la skill `saboru-db`.
 - **Marca:** antes de crear o rediseñar UI, lee `docs/05-MARCA-Y-UI.md` y usa los assets de `docs/brand/`. No inventes colores, tipografías ni variantes del logo.
-- **Diseño de interfaz:** antes de crear o rediseñar una pantalla, carga y sigue la skill `frontend-design`. Úsala para decidir paleta, tipografía, layout y jerarquía visual; el brief de SaborU y `docs/01` mandan sobre los defaults de la skill.
+- **Diseño de interfaz:** antes de crear o rediseñar una pantalla, carga y sigue la skill local `frontend-design` (`.opencode/skills/frontend-design/SKILL.md`). Es **obligatoria desde la Fase 7.5**. Úsala para decidir paleta, tipografía, layout y jerarquía visual; el brief de SaborU, `docs/05` y `docs/01` mandan sobre los defaults de la skill.
 - **Verificación en navegador:** usa el MCP `playwright` para abrir la app, inspeccionar el DOM, tomar capturas y reproducir flujos a mano. Es para explorar y depurar, no para declarar que una prueba pasa.
 - **Pruebas E2E:** la suite automatizada usa `@playwright/test` y se ejecuta con `npm run test:e2e` sobre `build` + `start`. El MCP no reemplaza la suite ni sus resultados.
 - **Documentación:** si una API de Next.js, Supabase, Serwist o MapLibre no está clara, consulta la documentación vigente antes de escribir código; no confíes en memoria.

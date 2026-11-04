@@ -2,6 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { photoSrc } from "@/lib/photos";
 import { getSupabaseUrl } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
@@ -131,5 +132,5 @@ export async function getVendorDashboard(
 }
 
 export function photoPublicUrl(path: string) {
-  return `${getSupabaseUrl()}/storage/v1/object/public/establishment-photos/${path}`;
+  return photoSrc(path, getSupabaseUrl()) ?? "";
 }

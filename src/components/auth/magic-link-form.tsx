@@ -4,7 +4,10 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import type { AuthFormState } from "@/server/actions/auth";
 
 type MagicLinkFormProps = {
@@ -36,30 +39,24 @@ export function MagicLinkForm({
 
   if (state.sent) {
     return (
-      <p
-        role="status"
-        className="mt-6 border border-carbon bg-campus px-4 py-3 text-sm font-medium text-carbon"
-      >
+      <Alert tone="success" className="mt-6">
         Revisa tu correo y abre el enlace para entrar. Si no llega en unos
         minutos, revisa la carpeta de spam.
-      </p>
+      </Alert>
     );
   }
 
   return (
     <form action={formAction} className="mt-6 flex flex-col gap-4">
       <div className="flex flex-col gap-2">
-        <label htmlFor="email" className="text-sm font-medium text-carbon">
-          Correo electrónico
-        </label>
-        <input
+        <Label htmlFor="email">Correo electrónico</Label>
+        <Input
           id="email"
           name="email"
           type="email"
           autoComplete="email"
           required
           aria-describedby={hint ? "email-hint" : undefined}
-          className="h-11 w-full rounded-card border border-carbon bg-cream px-3 text-base text-carbon placeholder:text-carbon/50"
           placeholder="tu.correo@uptc.edu.co"
         />
         {hint ? (
@@ -95,14 +92,7 @@ export function MagicLinkForm({
         </div>
       ) : null}
 
-      {state.error ? (
-        <p
-          role="alert"
-          className="border border-carbon px-4 py-3 text-sm font-semibold text-carbon"
-        >
-          {state.error}
-        </p>
-      ) : null}
+      {state.error ? <Alert tone="error">{state.error}</Alert> : null}
 
       <SubmitButton label={submitLabel} />
     </form>

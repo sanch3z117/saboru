@@ -15,8 +15,13 @@
     var(--font-poppins), "Poppins", ui-sans-serif, system-ui, sans-serif;
   --font-sans: var(--font-inter), "Inter", ui-sans-serif, system-ui, sans-serif;
 
-  --radius-card: 1rem;
+  --radius-card: 0.75rem;
+  --radius-panel: 0.625rem;
   --radius-pill: 9999px;
+
+  /* Sombra dura de cartelera: offset sin blur, nunca sombra difusa. */
+  --shadow-hard: 4px 4px 0 0 #2b2b2b;
+  --shadow-hard-sm: 2px 2px 0 0 #2b2b2b;
 
   /* Tokens de interfaz derivados de la paleta (no son colores nuevos de marca) */
   --color-background: var(--color-cream);

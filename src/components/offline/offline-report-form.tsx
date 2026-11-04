@@ -2,7 +2,10 @@
 
 import { useState, type FormEvent } from "react";
 
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { enqueueOperation } from "@/lib/offline/outbox";
 import { reportReviewSchema } from "@/lib/validations/review";
 
@@ -87,29 +90,24 @@ export function OfflineReportForm({
 
   return (
     <form onSubmit={handleSubmit} className="mt-2 flex flex-col gap-2">
-      <label
-        htmlFor={`off-report-${reviewId}`}
-        className="text-sm font-medium text-carbon"
-      >
-        Motivo del reporte
-      </label>
-      <textarea
+      <Label htmlFor={`off-report-${reviewId}`}>Motivo del reporte</Label>
+      <Textarea
         id={`off-report-${reviewId}`}
         name="reason"
         rows={2}
         maxLength={300}
         required
-        className="w-full border border-carbon bg-cream px-3 py-2 text-sm text-carbon"
+        className="min-h-16 text-sm"
         placeholder="Cuéntanos qué pasa con esta reseña"
       />
 
       {message ? (
-        <p
-          role={message.tone === "error" ? "alert" : "status"}
-          className="text-xs font-semibold text-carbon"
+        <Alert
+          tone={message.tone === "error" ? "error" : "success"}
+          className="px-3 py-2 text-xs"
         >
           {message.text}
-        </p>
+        </Alert>
       ) : null}
 
       <div className="flex gap-2">

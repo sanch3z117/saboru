@@ -3,7 +3,10 @@
 import { useActionState, useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
 
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   reportReviewAction,
   type ReviewFormState,
@@ -47,10 +50,8 @@ export function ReportForm({ reviewId }: { reviewId: string }) {
     <form action={formAction} className="mt-3 flex flex-col gap-2">
       <input type="hidden" name="reviewId" value={reviewId} />
       <input type="hidden" name="clientId" value={clientId} />
-      <label htmlFor={`reason-${reviewId}`} className="text-sm font-medium">
-        Motivo del reporte
-      </label>
-      <textarea
+      <Label htmlFor={`reason-${reviewId}`}>Motivo del reporte</Label>
+      <Textarea
         id={`reason-${reviewId}`}
         name="reason"
         rows={2}
@@ -58,21 +59,21 @@ export function ReportForm({ reviewId }: { reviewId: string }) {
         required
         value={reason}
         onChange={(event) => setReason(event.target.value)}
-        className="w-full border border-carbon bg-cream px-3 py-2 text-sm text-carbon"
+        className="min-h-16 text-sm"
         placeholder="Cuéntanos qué pasa con esta reseña"
       />
       <p className="text-xs text-carbon/60">{reason.length} / 300</p>
 
       {state.status === "error" ? (
-        <p role="alert" className="text-sm font-semibold text-carbon">
+        <Alert tone="error" className="px-3 py-2 text-xs">
           {state.message}
-        </p>
+        </Alert>
       ) : null}
 
       {state.status === "success" ? (
-        <p role="status" className="text-sm font-medium text-carbon">
+        <Alert tone="success" className="px-3 py-2 text-xs">
           {state.message}
-        </p>
+        </Alert>
       ) : null}
 
       <div className="flex gap-2">

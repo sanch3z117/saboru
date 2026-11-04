@@ -113,7 +113,7 @@ async function login(page: Page, email: string) {
   const link = await getMagicLink(email);
   await page.goto(link);
   await expect(
-    page.getByRole("button", { name: /Salir|Cerrar sesión/ }),
+    page.getByRole("button", { name: /Salir|Cerrar sesión/ }).first(),
   ).toBeVisible();
 }
 

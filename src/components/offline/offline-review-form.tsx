@@ -2,7 +2,10 @@
 
 import { useState, type FormEvent } from "react";
 
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { enqueueOperation } from "@/lib/offline/outbox";
 import { QUOTA_MESSAGE } from "@/lib/offline/quota";
 import { createReviewSchema } from "@/lib/validations/review";
@@ -108,7 +111,10 @@ export function OfflineReviewForm({
       <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-4">
         <div className="grid gap-3 sm:grid-cols-2">
           {RATINGS.map((rating) => (
-            <fieldset key={rating.name} className="border border-carbon/20 p-3">
+            <fieldset
+              key={rating.name}
+              className="rounded-panel border border-carbon/20 p-3"
+            >
               <legend className="px-1 text-sm font-medium text-carbon">
                 {rating.label}
               </legend>
@@ -134,36 +140,23 @@ export function OfflineReviewForm({
         </div>
 
         <div className="flex flex-col gap-1">
-          <label
-            htmlFor="off-comment"
-            className="text-sm font-medium text-carbon"
-          >
-            Comentario (opcional, máx. 500)
-          </label>
-          <textarea
+          <Label htmlFor="off-comment">Comentario (opcional, máx. 500)</Label>
+          <Textarea
             id="off-comment"
             name="comment"
             rows={3}
             maxLength={500}
             value={comment}
             onChange={(event) => setComment(event.target.value)}
-            className="w-full border border-carbon bg-cream px-3 py-2 text-base text-carbon placeholder:text-carbon/50"
             placeholder="¿Qué tal estaba la comida?"
           />
           <p className="text-xs text-carbon/60">{comment.length} / 500</p>
         </div>
 
         {message ? (
-          <p
-            role={message.tone === "error" ? "alert" : "status"}
-            className={`border px-4 py-3 text-sm font-semibold text-carbon ${
-              message.tone === "error"
-                ? "border-carbon"
-                : "border-carbon bg-campus"
-            }`}
-          >
+          <Alert tone={message.tone === "error" ? "error" : "success"}>
             {message.text}
-          </p>
+          </Alert>
         ) : null}
 
         <Button type="submit" disabled={pending} className="w-fit">

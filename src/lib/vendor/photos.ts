@@ -1,8 +1,13 @@
-export const PHOTO_BUCKET = "establishment-photos";
+export { PHOTO_BUCKET } from "@/lib/photos";
+
 export const PHOTO_MAX_BYTES = 5 * 1024 * 1024;
 export const PHOTO_MAX_COUNT = 5;
 
-export const PHOTO_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
+export const PHOTO_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+] as const;
 
 const EXTENSIONS: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -14,8 +19,7 @@ const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export type PhotoValidation =
-  | { ok: true; extension: string }
-  | { ok: false; message: string };
+  { ok: true; extension: string } | { ok: false; message: string };
 
 export function validatePhoto(file: {
   type: string;

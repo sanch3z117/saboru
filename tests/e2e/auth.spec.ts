@@ -348,7 +348,7 @@ test.describe("autenticación", () => {
       .check();
     await page.getByRole("button", { name: "Crear cuenta" }).click();
 
-    await expect(page.locator("p[role='alert']")).toContainText(
+    await expect(page.locator("[data-slot='alert'][role='alert']")).toContainText(
       /institucional/i,
     );
 
@@ -375,7 +375,7 @@ test.describe("autenticación", () => {
       .evaluate((form) => form.setAttribute("novalidate", ""));
     await page.getByRole("button", { name: "Crear cuenta" }).click();
 
-    await expect(page.locator("p[role='alert']")).toContainText(
+    await expect(page.locator("[data-slot='alert'][role='alert']")).toContainText(
       /política de privacidad/i,
     );
 
@@ -534,7 +534,7 @@ test.describe("autenticación", () => {
       .check();
     await page.getByRole("button", { name: "Aceptar invitación" }).click();
 
-    await expect(page.locator("p[role='alert']")).toContainText(/invitación/i);
+    await expect(page.locator("[data-slot='alert'][role='alert']")).toContainText(/invitación/i);
   });
 
   test("un admin entra a /admin y cierra sesión desde el panel", async ({

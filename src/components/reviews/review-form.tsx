@@ -2,7 +2,10 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useUpdateBlocker } from "@/components/offline/use-update-blocker";
 import {
   saveReviewAction,
@@ -95,7 +98,10 @@ export function ReviewForm({
 
       <div className="grid gap-4 sm:grid-cols-2">
         {RATINGS.map((rating) => (
-          <fieldset key={rating.name} className="border border-carbon/20 p-3">
+          <fieldset
+            key={rating.name}
+            className="rounded-panel border border-carbon/20 p-3"
+          >
             <legend className="px-1 text-sm font-medium text-carbon">
               {rating.label}
             </legend>
@@ -124,38 +130,25 @@ export function ReviewForm({
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="comment" className="text-sm font-medium text-carbon">
-          Comentario (opcional, máx. 500)
-        </label>
-        <textarea
+        <Label htmlFor="comment">Comentario (opcional, máx. 500)</Label>
+        <Textarea
           id="comment"
           name="comment"
           rows={4}
           maxLength={500}
           value={comment}
           onChange={(event) => setComment(event.target.value)}
-          className="w-full border border-carbon bg-cream px-3 py-2 text-base text-carbon placeholder:text-carbon/50"
           placeholder="¿Qué tal estaba la comida?"
         />
         <p className="text-xs text-carbon/60">{comment.length} / 500</p>
       </div>
 
       {state.status === "error" ? (
-        <p
-          role="alert"
-          className="border border-carbon px-4 py-3 text-sm font-semibold text-carbon"
-        >
-          {state.message}
-        </p>
+        <Alert tone="error">{state.message}</Alert>
       ) : null}
 
       {state.status === "success" ? (
-        <p
-          role="status"
-          className="border border-carbon bg-campus px-4 py-3 text-sm font-medium text-carbon"
-        >
-          {state.message}
-        </p>
+        <Alert tone="success">{state.message}</Alert>
       ) : null}
 
       <Button type="submit" disabled={pending} className="w-fit">
