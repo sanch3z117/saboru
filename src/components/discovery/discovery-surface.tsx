@@ -94,6 +94,7 @@ export function DiscoverySurface() {
   const geolocation = useGeolocation(GEOLOCATION_OPTIONS);
   const isMobile = useIsMobile();
   const previousQueryRef = useRef(filters.q);
+  const scrollPositionRef = useRef<number | null>(null);
 
   // Solo sincroniza cambios externos de la URL. En el montaje, el estado ya
   // nace con `filters.q`; así una hidratación tardía no borra lo que la
@@ -106,6 +107,9 @@ export function DiscoverySurface() {
 
   const commitFilters = useCallback(
     (patch: Partial<DiscoveryFilters>) => {
+      // El router puede perder `scroll: false` en algunas transiciones; guarda
+      // la posición para restaurarla cuando llegue el nuevo estado.
+      scrollPositionRef.current = window.scrollY;
       const next: DiscoveryFilters = {
         ...filters,
         q: queryInput,
@@ -119,6 +123,17 @@ export function DiscoverySurface() {
     },
     [filters, pathname, queryInput, router],
   );
+
+  useEffect(() => {
+    const top = scrollPositionRef.current;
+    if (top === null) return;
+    scrollPositionRef.current = null;
+
+    const frame = window.requestAnimationFrame(() => {
+      window.scrollTo(0, top);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [filters]);
 
   useEffect(() => {
     if (queryInput === filters.q) return;

@@ -1,7 +1,7 @@
 "use client";
 
 import { Search, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Chip } from "@/components/ui/chip";
 import { Input } from "@/components/ui/input";
@@ -36,10 +36,20 @@ export function DiscoverySearch({
   const [budgetDraft, setBudgetDraft] = useState(() =>
     budgetForSlider(filters.budget),
   );
+  const budgetTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     setHydrated(true);
   }, []);
+
+  useEffect(
+    () => () => {
+      if (budgetTimerRef.current !== null) {
+        window.clearTimeout(budgetTimerRef.current);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     setBudgetDraft(budgetForSlider(filters.budget));
@@ -58,10 +68,26 @@ export function DiscoverySearch({
       : `Hasta ${formatPrice(shownBudget)}`;
 
   const commitBudget = (value: number) => {
+    if (budgetTimerRef.current !== null) {
+      window.clearTimeout(budgetTimerRef.current);
+      budgetTimerRef.current = null;
+    }
     const next = value >= BUDGET_MAX_COP ? null : value;
     if (next !== filters.budget) {
       onFiltersChange({ budget: next, page: 1 });
     }
+  };
+
+  // Si el navegador no entrega `pointerup` al soltar la barra, el debounce
+  // aplica igual el último valor sin esperar a otro gesto.
+  const scheduleBudget = (value: number) => {
+    if (budgetTimerRef.current !== null) {
+      window.clearTimeout(budgetTimerRef.current);
+    }
+    budgetTimerRef.current = window.setTimeout(() => {
+      budgetTimerRef.current = null;
+      commitBudget(value);
+    }, 300);
   };
 
   return (
@@ -148,7 +174,11 @@ export function DiscoverySearch({
               value={budgetForSlider(budgetDraft)}
               aria-label="Presupuesto máximo"
               aria-valuetext={budgetLabel}
-              onChange={(event) => setBudgetDraft(Number(event.target.value))}
+              onChange={(event) => {
+                const value = Number(event.target.value);
+                setBudgetDraft(value);
+                scheduleBudget(value);
+              }}
               onPointerUp={(event) =>
                 commitBudget(Number(event.currentTarget.value))
               }
