@@ -62,6 +62,7 @@ El service worker (`src/app/sw.ts`) solo maneja red y caché. **No contiene lóg
 | Navegaciones a rutas públicas y peticiones RSC                                           | Network-only; si falla la red, precache `/offline`                     |
 | Navegaciones a rutas de cuenta (`/panel*`, `/admin*`, `/login`, `/registro*`, `/auth/*`) | Network-only; si falla la red, `/requiere-conexion` precacheada        |
 | `GET /api/catalog/snapshot` y `GET /api/viewer`                                          | Network-only; la página guarda snapshot y viewer en IndexedDB/storage  |
+| Teselas, estilos, sprites y glifos de OpenStreetMap/MapTiler                             | Network-only; nunca se cachean (el mapa es online-only)                |
 | Cualquier petición a Supabase (Auth, REST, RPC, Storage)                                 | Network-only                                                           |
 
 Las páginas de la app devuelven contenido distinto según la sesión (por ejemplo la
@@ -82,6 +83,7 @@ aplica esa decisión; no hay otra copia de las reglas.
   `/offline`).
 - `/api/sync`, `/api/viewer` y cualquier método distinto de `GET`.
 - Peticiones a Supabase Auth, REST, RPC o Storage privado.
+- Teselas, estilos, sprites y glifos de OpenStreetMap y MapTiler (`tile.openstreetmap.org`, `*.maptiler.com`); el mapa no tiene copia offline.
 - Respuestas con `Set-Cookie`, con `Authorization` o con `Cache-Control: private/no-store`.
 - Respuestas no `ok` (4xx/5xx) y respuestas opacas.
 
@@ -94,7 +96,8 @@ shell. El HTML cacheado **no debe contener datos del usuario**.
 búsqueda sin conexión: carga el snapshot de IndexedDB, filtra con
 `snapshotToSearchItems` + `searchCatalog` (presupuesto, bloque, categoría y
 “abierto ahora”) y muestra la ficha en el mismo panel. No navega a `/producto/*`
-ni `/establecimiento/*` (son NetworkOnly) y no muestra datos de sesión.
+ni `/establecimiento/*` (son NetworkOnly), no muestra datos de sesión y no
+incluye el mapa: el mapa es online-only y no lee IndexedDB.
 Sin snapshot muestra “Vuelve a conectarte para descargar el catálogo.”; si el
 registro está corrupto o la cuota lo impide, se explica y se ofrece reintentar.
 Queda prohibido dejar `NetworkOnly` sin el fallback `/offline`.

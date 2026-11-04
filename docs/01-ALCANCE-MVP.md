@@ -29,7 +29,8 @@ Para los establecimientos, SaborU es una vitrina digital y un panel con retroali
    - Abierto ahora según el horario.
    - Tipo de comida o categoría.
    - Filtros combinables, con paginación.
-   - Funciona igual con y sin conexión (se busca sobre una copia local del catálogo).
+   - Mapa del campus con los locales y la ubicación del usuario (solo con conexión; la lista y la distancia en texto son la alternativa).
+   - Funciona igual con y sin conexión para buscar y filtrar (se busca sobre una copia local del catálogo).
 
 3. **Reseñas por criterios**
    - Cinco criterios de 1 a 5: sabor, cantidad, precio, presentación y relación calidad-precio.
@@ -64,7 +65,7 @@ Para los establecimientos, SaborU es una vitrina digital y un panel con retroali
 | Ver fotos | Las ya vistas, sí; las demás muestran una imagen de reemplazo |
 | Escribir reseña, favorito o reporte | Sí, quedan pendientes y se envían al volver la red |
 | Iniciar sesión, registrarse, recuperar acceso | No |
-| Mapa interactivo | No (se muestra bloque y distancia en texto) |
+| Mapa interactivo | No (el mapa es solo con conexión; se muestra bloque y distancia en texto) |
 | Panel del vendedor y panel admin | No |
 
 ## Fuera del MVP
@@ -102,6 +103,7 @@ El MVP se considera terminado cuando estos flujos funcionan de punta a punta y p
 6. **Offline, lectura:** tras una visita con conexión, con la red cortada y la página recargada, el estudiante busca por presupuesto, abre una ficha y la ve completa.
 7. **Offline, escritura:** sin conexión, el estudiante escribe una reseña, la ve "Pendiente de envío"; al volver la red se publica y aparece la insignia "Reseña verificada".
 8. **Offline, privacidad:** al cerrar sesión se borran las cachés y datos privados locales, y el panel del vendedor muestra "requiere conexión" sin datos.
+9. **Mapa, solo con conexión:** muestra los locales del campus y la ubicación del usuario con permiso; sin permiso cae al centro del campus y sin teselas cae a la lista con distancias en texto.
 
 Además: la app es instalable (Lighthouse/DevTools) y se verificó a mano en un Android con Chrome y, si es posible, en un iPhone con Safari.
 
@@ -121,4 +123,4 @@ Además: la app es instalable (Lighthouse/DevTools) y se verificó a mano en un 
 - Nombre legal y dominio web definitivos.
 - Mínimo de reseñas para mostrar promedios al vendedor: se propone 5; confirmar.
 - Proveedor de límite de peticiones: se propone Upstash (plan gratuito); confirmar.
-- Proveedor de teselas del mapa para producción (el servidor público de OpenStreetMap tiene política de uso limitado).
+- Cuota de MapTiler Free en producción: confirmar antes del despliegue (proveedor decidido en `docs/06`; OSM es el fallback).

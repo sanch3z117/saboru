@@ -13,6 +13,20 @@ export const OFFLINE_IMAGE_CACHE = "public-images";
 const IMAGE_EXTENSION = /\.(?:png|jpe?g|webp|svg|ico|gif|avif)$/i;
 
 /**
+ * Teselas, estilos, sprites y glifos del mapa. Nunca entran al cache del
+ * service worker: el mapa es online-only (docs/04).
+ */
+export function isMapAssetUrl(url: URL) {
+  const hostname = url.hostname.toLowerCase();
+  return (
+    hostname === "tile.openstreetmap.org" ||
+    hostname.endsWith(".tile.openstreetmap.org") ||
+    hostname === "maptiler.com" ||
+    hostname.endsWith(".maptiler.com")
+  );
+}
+
+/**
  * Decide qué hace el service worker con una petición. Es la fuente única de la
  * lista de exclusión de `docs/04`: nada de HTML ni RSC de la app se cachea.
  */
@@ -35,6 +49,10 @@ export function cacheStrategyFor(input: CacheRuleInput): CacheStrategy {
 
   const isImage =
     input.destination === "image" || IMAGE_EXTENSION.test(url.pathname);
+
+  if (isMapAssetUrl(url)) {
+    return "network-only";
+  }
 
   if (!input.sameOrigin) {
     // Solo fotos públicas; cualquier API de Supabase va a la red.

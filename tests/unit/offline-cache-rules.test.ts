@@ -65,6 +65,25 @@ describe("política de caché del service worker", () => {
     ).toBe("network-only");
   });
 
+  it("nunca cachea teselas, estilos ni sprites del mapa", () => {
+    for (const url of [
+      "https://tile.openstreetmap.org/16/19402/32072.png",
+      "https://a.tile.openstreetmap.org/16/19402/32072.png",
+      "https://api.maptiler.com/maps/streets-v2/style.json?key=test",
+      "https://api.maptiler.com/maps/streets-v2/sprite.png",
+      "https://cdn.maptiler.com/maps/streets-v2/1/2/3.pbf",
+    ]) {
+      expect(
+        cacheStrategyFor({
+          url,
+          method: "GET",
+          sameOrigin: false,
+          destination: "image",
+        }),
+      ).toBe("network-only");
+    }
+  });
+
   it("manda a la red API, auth, mutaciones y métodos distintos de GET", () => {
     expect(rule("/api/catalog/snapshot")).toBe("network-only");
     expect(rule("/api/sync")).toBe("network-only");

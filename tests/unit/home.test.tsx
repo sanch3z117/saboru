@@ -7,6 +7,10 @@ vi.mock("@/components/auth/session-menu", () => ({
   SessionMenu: () => null,
 }));
 
+vi.mock("@/components/map/campus-map-section", () => ({
+  CampusMapSection: () => null,
+}));
+
 vi.mock("@/server/queries/catalog", () => ({
   getBlocks: async () => [{ id: "block-1", name: "Bloque Central" }],
   getCategories: async () => ["almuerzos"],

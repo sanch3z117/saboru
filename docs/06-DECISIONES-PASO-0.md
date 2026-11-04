@@ -54,7 +54,8 @@
 - **Decisión:** MapTiler Cloud en el plan Free, con MapLibre GL y atribución visible.
 - **Límites free:** 100.000 requests de API al mes, 5.000 sesiones de mapa al mes y 5 estilos.
 - **Por qué:** integración directa con MapLibre, sin montar infraestructura, y la cuota alcanza para el MVP. El mapa solo se usa en la búsqueda y la ficha; no en el offline.
-- **Fallback:** si el mapa falla o se agota la cuota, mostrar bloque y distancia en texto. El mapa es una mejora, no un requisito para decidir.
+- **Implementación (7.5.1):** `maplibre-gl@6.16.0` exacto, `NEXT_PUBLIC_MAPTILER_KEY` en el cliente y estilo `streets-v2`. Sin clave se usa OpenStreetMap raster; en ambos casos la atribución queda visible.
+- **Fallback:** si no hay red, fallan las teselas o se agota la cuota, mostrar bloque y distancia en texto. El mapa es una mejora, no un requisito para decidir. El service worker nunca cachea teselas ni estilos.
 - **Alternativa futura:** Protomaps/PMTiles autohospedado si el uso crece o se quiere eliminar la dependencia.
 
 ## 6. Nombre legal y dominio web

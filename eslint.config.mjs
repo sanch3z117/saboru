@@ -18,6 +18,7 @@ const eslintConfig = [
       "public/sw.js",
       "public/sw.js.map",
       "public/swe-worker-*.js",
+      "public/maplibre/**",
       "test-results/**",
       "playwright-report/**",
       "scripts/**",

@@ -1,6 +1,7 @@
 import { EstablishmentCard } from "@/components/catalog/establishment-card";
 import { SearchForm } from "@/components/catalog/search-form";
 import { SiteHeader } from "@/components/layout/site-header";
+import { CampusMapSection } from "@/components/map/campus-map-section";
 import { SnapshotRefresher } from "@/components/offline/snapshot-refresher";
 import {
   getBlocks,
@@ -46,6 +47,8 @@ export default async function HomePage() {
             />
           </div>
         </section>
+
+        <CampusMapSection />
 
         <section aria-labelledby="destacado" className="mt-14">
           <div className="flex flex-wrap items-baseline justify-between gap-2">

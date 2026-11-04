@@ -12,7 +12,7 @@
 | Autenticación        | Supabase Auth                                            | Magic link/OTP y sesiones seguras                                               |
 | Archivos             | Supabase Storage                                         | Fotos de establecimientos y productos                                           |
 | PWA / offline        | Serwist (`@serwist/next`, `serwist`) + `idb`             | Service worker robusto e IndexedDB                                              |
-| Mapas                | MapLibre GL + MapTiler (teselas)                         | Solo con conexión; MapTiler Free con atribución y fallback a distancia en texto |
+| Mapas                | MapLibre GL + MapTiler / OSM                            | Solo con conexión; MapTiler Free con atribución y fallback OSM o a distancia en texto |
 | Validación           | Zod + React Hook Form                                    | Reglas compartidas cliente/servidor                                             |
 | Límite de peticiones | Upstash Ratelimit (plan gratuito)                        | Rate limiting en Vercel                                                         |
 | Pruebas              | Vitest + Testing Library + `fake-indexeddb` + Playwright | Unitarias, integración y E2E                                                    |
@@ -500,6 +500,16 @@ order by distance_m asc, p.price_cop asc;
 - Hora siempre en `America/Bogota`, calculada en el servidor (online) o con el reloj del dispositivo ajustado a esa zona (offline; solo para mostrar, nunca para reglas de negocio).
 - Prueba obligatoria: la función pura y el RPC dan el mismo resultado con los mismos datos.
 
+## Mapa del campus (Fase 7.5.1)
+
+- **Librería:** `maplibre-gl@6.16.0` fijado exacto. Se carga solo en cliente con `CampusMapLoader` (`dynamic(..., { ssr: false })`) y solo en la home hasta que 7.5.2 lo mueva al descubrimiento. No se importa en `/offline`, panel ni admin.
+- **Worker:** `public/maplibre/maplibre-gl-worker.mjs`, copiado desde `node_modules` por `scripts/copy-maplibre-worker.mjs` en `prebuild`/`predev`. `setWorkerUrl` apunta a esa ruta same-origin; la CSP mantiene `worker-src 'self' blob:`.
+- **Datos:** el mapa descarga `GET /api/catalog/snapshot` y `src/lib/map/places.ts` (función pura) filtra latitud/longitud, calcula precio mínimo, rating disponible desde `product_stats` y distancia con haversine. No hay RPC nuevo ni migración. Los bloques salen del snapshot y el centro de respaldo es `5.5520095, -73.3566646`.
+- **Estilo:** MapTiler `streets-v2` si existe `NEXT_PUBLIC_MAPTILER_KEY`; si falta o está vacía, raster de OpenStreetMap con atribución visible. La clave es pública por diseño, no un secreto de servidor.
+- **Ubicación:** `useGeolocation` solo se dispara con “Usar mi ubicación”; no persiste ni envía coordenadas. Si se niega, falla o expira, se usa el centro del campus y se avisa. La distancia se muestra en el popup y en la lista.
+- **Online-only:** el mapa no lee IndexedDB ni el snapshot offline. Si fallan las teselas, el worker o la red, se muestra `MapFallback` con listado y reintento. El service worker excluye teselas, estilos, sprites y glifos (ver `docs/04`).
+- **Componentes:** `campus-map`, `campus-map-loader`, `campus-map-section`, `map-marker` (Pin-U), `map-popup`, `map-controls`, `map-fallback`, `map-skeleton` y `map-place-list`.
+
 ## Snapshot y sincronización
 
 - `GET /api/catalog/snapshot`: devuelve solo datos públicos (establecimientos activos, productos disponibles, bloques, `product_stats`, reseñas publicadas recientes sin `user_id`) con `version` y `generated_at`. Sin cookies ni datos privados; cacheable.
@@ -540,6 +550,7 @@ where e.slug = 'seed-comedor-la-cosecha'
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=        # nunca NEXT_PUBLIC_, solo servidor
+NEXT_PUBLIC_MAPTILER_KEY=         # opcional; sin clave se usa OSM
 UPSTASH_REDIS_REST_URL=
 UPSTASH_REDIS_REST_TOKEN=
 ```

@@ -64,6 +64,48 @@
   }
 }
 
+@layer components {
+  .saboru-map-popup {
+    z-index: 20;
+  }
+
+  .saboru-map-popup .maplibregl-popup-content {
+    padding: 0;
+    overflow: hidden;
+    border: 2px solid var(--color-carbon);
+    border-radius: var(--radius-card);
+    background: var(--color-cream);
+    box-shadow: var(--shadow-hard);
+  }
+
+  /* El pin ya marca el punto; el tip blanco de MapLibre rompe la marca. */
+  .saboru-map-popup .maplibregl-popup-tip {
+    display: none;
+  }
+
+  .saboru-map-popup .maplibregl-popup-close-button {
+    top: 5px;
+    right: 5px;
+    z-index: 2;
+    display: inline-flex;
+    width: 24px;
+    height: 24px;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--color-carbon);
+    border-radius: var(--radius-pill);
+    background: var(--color-cream);
+    color: var(--color-carbon);
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .saboru-map-popup .maplibregl-popup-close-button:hover {
+    background: var(--color-campus);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

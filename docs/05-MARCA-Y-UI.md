@@ -140,6 +140,15 @@ La app no es un tablero SaaS. Es la cartelera de comida del campus: papel crema,
 - **“Destacado”** es una insignia amarilla y nunca cambia el orden del ranking.
 - **“Reseña verificada”** es la única insignia verde, con icono de check.
 
+### Mapa del campus
+
+- **Superficie:** mapa con marco carbón de 2 px y alto fijo (sin CLS). Fondo crema, controles circulares con borde y sombra dura, atribución visible.
+- **Marcadores:** Pin-U por local y etiquetas discretas de los bloques. El marcador seleccionado escala y sube de z-index; el punto del usuario es naranja con halo.
+- **Popup:** tarjeta compacta con foto, nombre, categoría, estrella y conteo, distancia, “Desde $…” y “Ver ficha”. Cierra con botón “Cerrar” y clic en el mapa.
+- **Controles:** acercar, alejar, centrar en el campus y “Usar mi ubicación”. Todos con nombre accesible y objetivo táctil de 44 px.
+- **Fallback:** si no hay red o fallan las teselas, se retira el mapa y se muestra el aviso, la atribución y la lista textual con distancias; “Reintentar” vuelve a montar el mapa.
+- **Proveedor:** MapTiler Free con `NEXT_PUBLIC_MAPTILER_KEY`; sin clave, OpenStreetMap raster con atribución. Nunca se cachean teselas ni estilos.
+
 ### Estados obligatorios
 
 Toda pantalla nueva define: carga (skeleton con forma real), vacío (explica y ofrece una acción), error (mensaje claro + reintento), sin permiso de ubicación (aviso y centro del campus), sin conexión (sin mapa, distancia en texto), 404 y auth con la misma marca. El estado nunca se comunica solo con color.

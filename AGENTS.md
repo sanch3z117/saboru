@@ -33,7 +33,7 @@ Si hay conflicto entre documentos, gana este orden: `AGENTS.md` > `03` > `04` > 
 - Supabase: Postgres 15, PostGIS, Auth, Storage y RLS.
 - Serwist (`@serwist/next` + `serwist`) para el service worker; `idb` para IndexedDB.
 - Zod + React Hook Form.
-- MapLibre GL + OpenStreetMap (solo con conexión).
+- MapLibre GL + MapTiler Free con fallback a OpenStreetMap (solo con conexión; sin mapa offline).
 - Upstash Ratelimit (límite de peticiones en servidor).
 - Vitest + Testing Library + `fake-indexeddb` + Playwright.
 - Vercel + Supabase Cloud.
