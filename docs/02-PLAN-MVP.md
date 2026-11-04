@@ -124,6 +124,7 @@ Insertada antes de Fase 8. Detalle de dirección visual en `docs/05` y de datos 
 
 ### Fase 8 - Despliegue
 
+- **Estado:** hecho. Vercel desde GitHub, Supabase Cloud con migraciones/seed/fotos, Auth con SMTP Brevo, smoke y `docs/07-DESPLIEGUE.md`.
 - Aplicar migraciones al Supabase remoto (con confirmación manual).
 - Desplegar en Vercel con variables de producción (incluidas las de Upstash).
 - Dominio y HTTPS.
