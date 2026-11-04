@@ -255,12 +255,32 @@ test("modera, gestiona locales, crea uno e invita", async ({ page }) => {
     await expect(
       page.getByRole("heading", { name: "Moderación y locales" }),
     ).toBeVisible();
+    const adminNavigation = page.getByRole("navigation", {
+      name: "Navegación de administración",
+    });
+    await expect(
+      adminNavigation.getByRole("link", { name: /reportes/i }),
+    ).toBeVisible();
+    await expect(
+      adminNavigation.getByRole("link", { name: /reseñas/i }),
+    ).toBeVisible();
+    await expect(
+      adminNavigation.getByRole("link", { name: /locales/i }),
+    ).toBeVisible();
+    await expect(
+      adminNavigation.getByRole("link", { name: /crear local/i }),
+    ).toBeVisible();
+    await expect(
+      adminNavigation.getByRole("link", { name: /invitaciones/i }),
+    ).toBeVisible();
 
     // Reporte creado después de la primera carga.
     const reportId = await insertReport(studentId, reviewId, reportReason);
     await page.reload();
 
-    const reportsSection = page.locator('section[aria-labelledby="reportes"]');
+    const reportsSection = page.locator(
+      'section[aria-labelledby="reportes-heading"]',
+    );
     const reportRow = reportsSection
       .getByRole("listitem")
       .filter({ hasText: reportReason });
@@ -281,7 +301,9 @@ test("modera, gestiona locales, crea uno e invita", async ({ page }) => {
       .toBe("reviewed");
 
     // Moderación de la reseña: ocultar y volver a publicar.
-    const reviewsSection = page.locator('section[aria-labelledby="resenas"]');
+    const reviewsSection = page.locator(
+      'section[aria-labelledby="resenas-heading"]',
+    );
     const reviewRow = reviewsSection
       .getByRole("listitem")
       .filter({ hasText: reviewComment });
@@ -302,7 +324,7 @@ test("modera, gestiona locales, crea uno e invita", async ({ page }) => {
 
     await page.reload();
     const hiddenRow = page
-      .locator('section[aria-labelledby="resenas"]')
+      .locator('section[aria-labelledby="resenas-heading"]')
       .getByRole("listitem")
       .filter({ hasText: reviewComment });
     await expect(hiddenRow.getByText("Oculta")).toBeVisible();
