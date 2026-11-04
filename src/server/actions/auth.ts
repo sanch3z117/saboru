@@ -6,6 +6,7 @@ import type { z } from "zod";
 import { demoEmailModeEnabled } from "@/lib/auth/demo";
 import { PRIVACY_VERSION } from "@/lib/auth/privacy";
 import {
+  ALLOWED_STUDENT_DOMAIN,
   emailSchema,
   studentRegistrationEmailSchema,
 } from "@/lib/auth/validation";
@@ -41,11 +42,33 @@ export async function requestStudentMagicLink(
     };
   }
 
-  const parsed = studentRegistrationEmailSchema(
-    demoEmailModeEnabled(),
-  ).safeParse(formData.get("email"));
+  const demoMode = demoEmailModeEnabled();
+  const parsed = studentRegistrationEmailSchema(demoMode).safeParse(
+    formData.get("email"),
+  );
   if (!parsed.success) {
     return { error: firstIssue(parsed.error), sent: false };
+  }
+
+  const isExternal = !parsed.data.endsWith(`@${ALLOWED_STUDENT_DOMAIN}`);
+  let demoAdmin: ReturnType<typeof createAdminClient> | null = null;
+
+  // En demo, el servidor agrega el correo a una allowlist de un solo uso. Solo
+  // el service role puede escribirla; el trigger crea el perfil student y la
+  // consume. Reseñas y favoritos siguen exigiendo @uptc.edu.co.
+  if (demoMode && isExternal) {
+    demoAdmin = createAdminClient();
+    const { error: allowError } = await demoAdmin
+      .from("demo_email_allowlist")
+      .upsert({ email: parsed.data }, { onConflict: "email" });
+
+    if (allowError) {
+      return {
+        error:
+          "No pudimos preparar la cuenta demo. Intenta de nuevo en un momento.",
+        sent: false,
+      };
+    }
   }
 
   const supabase = await createClient();
@@ -65,6 +88,13 @@ export async function requestStudentMagicLink(
       error: "No pudimos enviar el enlace. Intenta de nuevo en un momento.",
       sent: false,
     };
+  }
+
+  if (demoAdmin) {
+    await demoAdmin
+      .from("demo_email_allowlist")
+      .delete()
+      .eq("email", parsed.data);
   }
 
   return { error: null, sent: true };

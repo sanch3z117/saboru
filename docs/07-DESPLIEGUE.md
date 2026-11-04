@@ -57,14 +57,12 @@ No definir `RATE_LIMIT_DISABLED` ni `E2E_SW_TEST` en producción. `/api/e2e/sw-t
 ## Modo demo de correo (Fase 8.1)
 
 - `DEMO_ALLOW_ANY_EMAIL` es una variable de servidor (sin `NEXT_PUBLIC_`). Solo se configura en el entorno Preview/demo y vale exactamente `true`.
-- Con la bandera activa, `/registro` muestra “Modo demo: puedes registrarte con cualquier correo” y `requestStudentMagicLink` acepta cualquier correo. Sin la variable o con `false`, se mantiene `@uptc.edu.co`.
-- `handle_new_user()`, las políticas RLS y la regla de reseñas no cambian. Un correo externo sin invitación sigue sin crear perfil; para el demo se preparan cuentas concretas:
-  1. Crear la invitación del vendedor Gmail desde el panel admin (o insertarla en `vendor_invites`).
-  2. Aceptarla en `/registro/vendedor` con el magic link; el trigger crea el perfil `vendor` y asigna el local.
-  3. Para el admin Gmail, asignar `role='admin'` por SQL después de crear la cuenta: `update public.profiles set role = 'admin' where email = '...'`.
-- Las cuentas demo no se versionan. No se cambia el trigger, el SMTP ni el flujo PKCE.
+- Con la bandera activa, `/registro` muestra “Modo demo: puedes registrarte con cualquier correo” y `requestStudentMagicLink` acepta cualquier correo. El servidor agrega el correo externo a `demo_email_allowlist` (solo `service_role`, caduca a los 15 minutos); `handle_new_user()` crea el perfil `student` y consume la fila. Sin la variable o con `false`, se mantiene `@uptc.edu.co`.
+- La regla institucional sigue siendo la predeterminada: sin allowlist o invitación, un correo externo no crea perfil. Para preparar un admin Gmail: aceptar una invitación de vendedor y luego asignar `role='admin'` por SQL; para un vendedor Gmail: invitación + `/registro/vendedor`. Las cuentas demo no se versionan.
+- Las reseñas y los favoritos siguen exigiendo correo institucional: el demo Gmail sirve para login, panel y admin; reseña y favorito se prueban con una cuenta `@uptc.edu.co`.
+- El mapa usa MapTiler si la clave está configurada. Si el dominio no está permitido (preview) o el estilo falla, cae automáticamente a OpenStreetMap. No se cambia el SMTP ni el flujo PKCE.
 - En Preview, `/auth/callback` redirige al host del deployment (`VERCEL_URL`) para no perder la cookie de sesión; en Production sigue usando `NEXT_PUBLIC_SITE_URL`.
-- Preview del demo: `https://saboru-hlw9jqmgi-bross7.vercel.app` (protegido por Vercel Authentication). El comodín de redirects de Supabase Auth permite que los magic links vuelvan a ese host.
+- Preview del demo: el deployment de Preview actual (protegido por Vercel Authentication). El comodín de redirects de Supabase Auth permite que los magic links vuelvan a ese host.
 - Las reseñas y los favoritos siguen exigiendo correo institucional: el demo Gmail sirve para login, panel y admin; reseña y favorito se prueban con una cuenta `@uptc.edu.co`.
 
 ## Fotos demo

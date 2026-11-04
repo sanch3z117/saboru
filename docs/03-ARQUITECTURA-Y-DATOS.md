@@ -117,6 +117,17 @@ RLS: solo admin (`is_admin()`) para SELECT/INSERT/UPDATE. Un vendedor no la ve.
 
 En 1.3 se agregó la FK `establishment_id → public.establishments (id)` y el backfill de `establishments.owner_id` desde las invitaciones aceptadas (`accepted_by`), que solo toca locales sin dueño. Una invitación con `establishment_id` inexistente falla por FK (probado).
 
+### `demo_email_allowlist` (solo Fase 8.1)
+
+| Campo        | Tipo        | Notas                                      |
+| ------------ | ----------- | ------------------------------------------ |
+| `email`      | text PK     | Correo externo que se permite una vez      |
+| `created_at` | timestamptz | La fila caduca a los 15 minutos            |
+
+- Solo la escribe el `service_role` desde `requestStudentMagicLink` cuando `DEMO_ALLOW_ANY_EMAIL=true`. No tiene políticas para `anon` ni `authenticated`; RLS está activa y los permisos están revocados.
+- `handle_new_user()` la consulta solo para correos externos, crea el perfil `student` y consume la fila. En producción la tabla está vacía y la regla `@uptc.edu.co` sigue siendo la única vía normal.
+- Un correo externo admitido por esta tabla **no** puede reseñar ni guardar favoritos: `is_institutional_student()` sigue exigiendo el dominio institucional.
+
 ### Funciones y trigger de registro
 
 ```sql
@@ -165,7 +176,12 @@ begin
        set owner_id = new.id
      where e.id = v_invite.establishment_id
        and e.owner_id is null;
-  elsif v_email like '%@uptc.edu.co' then
+  elsif v_email like '%@uptc.edu.co'
+     or exists (
+       select 1 from public.demo_email_allowlist a
+        where a.email = v_email
+          and a.created_at > now() - interval '15 minutes'
+     ) then
     insert into public.profiles (
       id, role, email, full_name, privacy_accepted_at, privacy_version
     )
@@ -174,6 +190,7 @@ begin
       coalesce(new.raw_user_meta_data->>'full_name', ''),
       v_privacy_accepted_at, v_privacy_version
     );
+    delete from public.demo_email_allowlist where email = v_email;
   else
     raise exception 'email_domain_not_allowed' using errcode = 'P0001';
   end if;
@@ -185,6 +202,7 @@ for each row execute function public.handle_new_user();
 ```
 
 - Si el trigger lanza error, el registro se revierte: no queda cuenta ni perfil.
+- **Modo demo:** además del dominio institucional, el trigger acepta un correo externo si está en `demo_email_allowlist` (fila de menos de 15 minutos). Esa tabla solo la escribe el servidor con `service_role` y la fila se consume al crear el perfil. El registro normal y las reseñas/favoritos no cambian.
 - Alternativa más limpia: un _Before User Created hook_ de Supabase Auth con la misma lógica. Verificar en la documentación vigente cuál está disponible en el plan.
 - **Cambio de correo:** desactivar el cambio de email en Auth o aplicar la misma regla; `is_institutional_student()` lee `auth.users` en cada llamada, por lo que un cambio a un dominio ajeno bloquea las reseñas.
 - **Admin:** se asigna manualmente en la base (`update profiles set role='admin'` con `service_role` o SQL editor). No hay registro público de admin.
@@ -463,6 +481,7 @@ Mismo patrón para:
 | `favorites`                       | —                                   | CRUD propio                                                                        | —                                                                    | —                               |
 | `profiles`                        | —                                   | SELECT propio; UPDATE solo `full_name`                                             | igual                                                                | SELECT todo; rol por SQL manual |
 | `vendor_invites`                  | —                                   | —                                                                                  | —                                                                    | Todo vía RPC/RLS admin          |
+| `demo_email_allowlist`            | —                                   | —                                                                                  | —                                                                    | Solo `service_role` (servidor)  |
 | `search_events`, `product_views`  | — (solo vía RPC de registro)        | —                                                                                  | — (solo vía RPC de agregados)                                        | — (solo vía RPC)                |
 | `campus_blocks`                   | SELECT                              | SELECT                                                                             | SELECT                                                               | Todo                            |
 

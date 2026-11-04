@@ -72,61 +72,6 @@ async function createAuthUser(email: string) {
 }
 
 /**
- * Crea un usuario externo solo para el E2E del modo demo. El trigger
- * `handle_new_user` sigue rechazando correos fuera de @uptc.edu.co; aquí se
- * desactiva únicamente para esta inserción de prueba, igual que el bypass
- * documentado para crear la cuenta demo en el proyecto remoto.
- */
-async function createExternalDemoUser(email: string) {
-  const id = randomUUID();
-  await withDb(async (client) => {
-    await client.query("set session_replication_role = replica");
-    try {
-      await client.query(
-        `insert into auth.users (
-           instance_id, id, aud, role, email, email_confirmed_at,
-           raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
-           confirmation_token, recovery_token, email_change_token_new,
-           email_change
-         )
-         values (
-           '00000000-0000-0000-0000-000000000000', $1::uuid,
-           'authenticated', 'authenticated', $2::text, now(),
-           '{"provider":"email","providers":["email"]}',
-           '{"email_verified":true}', now(), now(), '', '', '', ''
-         )`,
-        [id, email],
-      );
-    } finally {
-      await client.query("set session_replication_role = default");
-    }
-    await client.query(
-      `insert into auth.identities (
-         id, provider_id, user_id, identity_data, provider,
-         last_sign_in_at, created_at, updated_at
-       )
-       values (
-         gen_random_uuid(), $1::text, $1::uuid,
-         jsonb_build_object(
-           'sub', $1::text,
-           'email', $2::text,
-           'email_verified', true,
-           'phone_verified', false
-         ),
-         'email', now(), now(), now()
-       )`,
-      [id, email],
-    );
-    await client.query(
-      `insert into public.profiles (id, role, email, full_name)
-       values ($1, 'student', $2, '')`,
-      [id, email],
-    );
-  });
-  return id;
-}
-
-/**
  * Crea el usuario por la API de Auth para que GoTrue le asigne identidad;
  * así `shouldCreateUser: false` del login lo reconoce.
  */
@@ -437,18 +382,15 @@ test.describe("autenticación", () => {
     }
   });
 
-  test("en modo demo acepta un correo externo ya preparado y completa el enlace", async ({
+  test("en modo demo registra un correo externo y completa el enlace", async ({
     page,
     browserName,
   }) => {
     test.skip(!DEMO_MODE, "requiere DEMO_ALLOW_ANY_EMAIL=true");
 
     const email = `e2e.demo.${browserName}.${randomUUID()}@gmail.com`;
-    let userId = "";
 
     try {
-      userId = await createExternalDemoUser(email);
-
       await submitMagicLink(page, "/registro", email, "Crear cuenta");
       const { link } = await getMagicLink(email);
       await page.goto(link);
@@ -457,15 +399,28 @@ test.describe("autenticación", () => {
       await expect(page.getByRole("button", { name: "Salir" })).toBeVisible();
 
       const profile = await withDb(async (client) => {
-        const result = await client.query<{ role: string }>(
-          "select role from public.profiles where email = $1",
+        const result = await client.query<{
+          role: string;
+          privacy_version: string | null;
+        }>(
+          `select role, privacy_version
+           from public.profiles
+           where email = $1`,
           [email],
         );
         return result.rows[0];
       });
       expect(profile?.role).toBe("student");
+      expect(profile?.privacy_version).toBe(PRIVACY_VERSION);
     } finally {
-      await deleteAuthUsers([userId].filter(Boolean));
+      const ids = await withDb(async (client) => {
+        const result = await client.query<{ id: string }>(
+          "select id from auth.users where email = $1",
+          [email],
+        );
+        return result.rows.map((row) => row.id);
+      });
+      await deleteAuthUsers(ids);
     }
   });
 

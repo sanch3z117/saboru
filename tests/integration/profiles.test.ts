@@ -73,6 +73,44 @@ describe("registro y dominio institucional", () => {
     expect(profile?.email).toBe("estudiante.mayus@uptc.edu.co");
   });
 
+  it("acepta un correo externo incluido en la allowlist demo", async () => {
+    const email = "demo.externo@gmail.com";
+    await client.query(
+      "insert into public.demo_email_allowlist (email) values ($1)",
+      [email],
+    );
+    const id = await insertAuthUser(client, email, {
+      privacyVersion: PRIVACY_VERSION,
+    });
+    const profile = await getProfile(client, id);
+
+    expect(profile?.role).toBe("student");
+    expect(profile?.email).toBe(email);
+    expect(await countProfiles(client, email)).toBe(1);
+
+    const remaining = await client.query<CountRow>(
+      "select count(*)::int as count from public.demo_email_allowlist where email = $1",
+      [email],
+    );
+    expect(remaining.rows[0]?.count).toBe(0);
+  });
+
+  it("rechaza la allowlist demo vencida", async () => {
+    const email = "demo.vencido@gmail.com";
+    await client.query(
+      `insert into public.demo_email_allowlist (email, created_at)
+       values ($1, now() - interval '20 minutes')`,
+      [email],
+    );
+
+    await client.query("savepoint expired");
+    await expect(insertAuthUser(client, email)).rejects.toThrow(
+      /email_domain_not_allowed/,
+    );
+    await client.query("rollback to savepoint expired");
+    expect(await countProfiles(client, email)).toBe(0);
+  });
+
   it("copia la aceptación y la versión de privacidad al perfil nuevo", async () => {
     const acceptedAt = "2026-11-03T15:30:00.000Z";
     const id = await insertAuthUser(client, "consentimiento@uptc.edu.co", {

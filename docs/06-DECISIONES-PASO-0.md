@@ -22,7 +22,7 @@
 - **Implementación:** una constante `ALLOWED_STUDENT_DOMAINS = ["uptc.edu.co"]`; validar en la UI y, sobre todo, en `handle_new_user()` y en `is_institutional_student()` contra `auth.users`.
 - **Por qué:** es el dominio oficial de la universidad, reduce reseñas falsas y evita pedir datos personales. Si la universidad usa un subdominio o alias, se agrega a la lista.
 - **Consecuencia:** un correo personal puede navegar el catálogo, pero no reseñar. El mensaje de error debe decir “Usa tu correo institucional UPTC”.
-- **Excepción de demo (Fase 8.1):** si `DEMO_ALLOW_ANY_EMAIL=true` en el servidor (solo Preview/demo), `requestStudentMagicLink` acepta cualquier correo y `/registro` muestra “Modo demo: puedes registrarte con cualquier correo”. La variable no lleva prefijo `NEXT_PUBLIC_`, no se define en Production y no cambia `handle_new_user()`, las políticas RLS ni la regla de reseñas: un correo externo sigue sin poder reseñar ni guardar favoritos. Sin la variable o con `false`, se mantiene `@uptc.edu.co`.
+- **Excepción de demo (Fase 8.1):** si `DEMO_ALLOW_ANY_EMAIL=true` en el servidor (solo Preview/demo), `requestStudentMagicLink` acepta cualquier correo y `/registro` muestra "Modo demo: puedes registrarte con cualquier correo". El servidor agrega el correo externo a `demo_email_allowlist` (solo `service_role`, caduca a los 15 minutos) y `handle_new_user()` crea el perfil `student` y consume la fila. La variable no lleva prefijo `NEXT_PUBLIC_`, no se define en Production y la regla `@uptc.edu.co` sigue siendo la predeterminada. Un correo externo admitido en demo no puede reseñar ni guardar favoritos porque `is_institutional_student()` sigue exigiendo el dominio. Sin la variable o con `false`, se mantiene `@uptc.edu.co`.
 
 ## 2. Supabase: plan Free con PostGIS en `extensions`
 
@@ -56,7 +56,7 @@
 - **Límites free:** 100.000 requests de API al mes, 5.000 sesiones de mapa al mes y 5 estilos.
 - **Por qué:** integración directa con MapLibre, sin montar infraestructura, y la cuota alcanza para el MVP. El mapa solo se usa en la búsqueda y la ficha; no en el offline.
 - **Implementación (7.5.1):** `maplibre-gl@6.16.0` exacto, `NEXT_PUBLIC_MAPTILER_KEY` en el cliente y estilo `streets-v2`. Sin clave se usa OpenStreetMap raster; en ambos casos la atribución queda visible.
-- **Fallback:** si no hay red, fallan las teselas o se agota la cuota, mostrar bloque y distancia en texto. El mapa es una mejora, no un requisito para decidir. El service worker nunca cachea teselas ni estilos.
+- **Fallback:** si no hay red, fallan las teselas, se agota la cuota o la clave está restringida por dominio (por ejemplo, un preview), el cliente reintenta con OpenStreetMap y, si tampoco carga, muestra bloque y distancia en texto. El mapa es una mejora, no un requisito para decidir. El service worker nunca cachea teselas ni estilos.
 - **Alternativa futura:** Protomaps/PMTiles autohospedado si el uso crece o se quiere eliminar la dependencia.
 
 ## 6. Nombre legal y dominio web

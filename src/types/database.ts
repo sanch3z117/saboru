@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -53,6 +53,22 @@ export type Database = {
           id?: string;
           location?: unknown;
           name?: string;
+        };
+        Relationships: [];
+      };
+      demo_email_allowlist: {
+        Row: {
+          created_at: string;
+          email: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          email: string;
+        };
+        Update: {
+          created_at?: string;
+          email?: string;
         };
         Relationships: [];
       };
