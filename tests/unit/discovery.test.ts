@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   BUDGET_MAX_COP,
-  BUDGET_MIN_COP,
   BUDGET_STEP_COP,
   budgetForSlider,
   discoverySearchParams,
@@ -14,14 +13,15 @@ describe("filtros de descubrimiento en la URL", () => {
   it("lee y valida los parámetros compartibles", () => {
     const filters = parseDiscoveryFilters(
       new URLSearchParams(
-        "q=%20arepa%20&categoria=fritos&presupuesto=10000&abierto=1&orden=price&pagina=3&bloque=block-1",
+        "q=%20arepa%20&categoria=fritos&categoria=bebidas&presupuesto_desde=5000&presupuesto=6000&abierto=1&orden=price&pagina=3&bloque=block-1",
       ),
     );
 
     expect(filters).toEqual({
       q: "arepa",
-      category: "fritos",
-      budget: 10000,
+      category: ["fritos", "bebidas"],
+      minBudget: 5000,
+      budget: 6000,
       openNow: true,
       order: "price",
       page: 3,
@@ -40,7 +40,8 @@ describe("filtros de descubrimiento en la URL", () => {
       budget: null,
       order: "distance",
       page: 1,
-      category: null,
+      category: [],
+      minBudget: 0,
       blockId: null,
     });
     expect(hasActiveDiscoveryFilters(filters)).toBe(false);
@@ -49,15 +50,16 @@ describe("filtros de descubrimiento en la URL", () => {
   it("mapea el presupuesto a la barra visible", () => {
     expect(budgetForSlider(null)).toBe(BUDGET_MAX_COP);
     expect(budgetForSlider(6500)).toBe(6500);
-    expect(budgetForSlider(100)).toBe(BUDGET_MIN_COP);
-    expect(budgetForSlider(10000)).toBe(BUDGET_MAX_COP);
-    expect(BUDGET_STEP_COP).toBe(100);
+    expect(budgetForSlider(100)).toBe(500);
+    expect(budgetForSlider(10000)).toBe(10000);
+    expect(BUDGET_STEP_COP).toBe(500);
   });
 
   it("serializa solo lo distinto del estado por defecto", () => {
     const empty = discoverySearchParams({
       q: "",
-      category: null,
+      category: [],
+      minBudget: 0,
       budget: null,
       openNow: false,
       order: "distance",
@@ -68,7 +70,8 @@ describe("filtros de descubrimiento en la URL", () => {
 
     const params = discoverySearchParams({
       q: "café",
-      category: "bebidas",
+      category: ["bebidas"],
+      minBudget: 0,
       budget: 5000,
       openNow: true,
       order: "rating",

@@ -6,7 +6,7 @@ import { DiscoverySurface } from "@/components/discovery/discovery-surface";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SnapshotRefresher } from "@/components/offline/snapshot-refresher";
-import { parseBudgetValue } from "@/lib/catalog/discovery";
+import { normalizeBudgetRange } from "@/lib/catalog/discovery";
 import { logSearchEvent } from "@/server/services/catalog-events";
 
 export const metadata: Metadata = {
@@ -25,7 +25,13 @@ export default async function SearchPage({
   searchParams: SearchParams;
 }) {
   const params = await searchParams;
-  const budget = parseBudgetValue(firstValue(params.presupuesto));
+  const range = normalizeBudgetRange(
+    Number.parseInt(firstValue(params.presupuesto_desde) ?? "0", 10),
+    params.presupuesto === undefined
+      ? null
+      : Number.parseInt(firstValue(params.presupuesto) ?? "", 10),
+  );
+  const budget = range.budget;
   const category = firstValue(params.categoria)?.trim().slice(0, 50) || null;
 
   // Analítica best-effort: nunca bloquea el render ni valida un bloque que

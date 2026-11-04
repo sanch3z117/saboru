@@ -68,6 +68,25 @@ describe("isOpenAt", () => {
 });
 
 describe("searchCatalog", () => {
+  it("filtra por rango inclusivo y categorías múltiples", () => {
+    const items = [
+      item({ id: "inferior", price_cop: 4999, category: "fritos" }),
+      item({ id: "incluido", price_cop: 5000, category: "fritos" }),
+      item({ id: "otra-categoria", price_cop: 5500, category: "bebidas" }),
+      item({ id: "superior", price_cop: 6001, category: "bebidas" }),
+    ];
+
+    expect(
+      searchCatalog(items, {
+        minBudget: 5000,
+        budget: 6000,
+        category: ["fritos", "bebidas"],
+        maxDistanceM: null,
+        openNow: false,
+      }).map((row) => row.id),
+    ).toEqual(["incluido", "otra-categoria"]);
+  });
+
   it("filtra por presupuesto, categoría y distancia", () => {
     const items = [
       item({ id: "barato", price_cop: 4000, category: "fritos" }),

@@ -25,8 +25,9 @@ export type CatalogSearchItem = {
 export type CatalogOrder = "distance" | "price" | "rating";
 
 export type CatalogFilters = {
+  minBudget?: number;
   budget: number | null;
-  category: string | null;
+  category: string[] | string | null;
   maxDistanceM: number | null;
   openNow: boolean;
   q?: string | null;
@@ -138,6 +139,10 @@ export function filterCatalog(
       return false;
     }
 
+    if ((filters.minBudget ?? 0) > 0 && item.price_cop < (filters.minBudget ?? 0)) {
+      return false;
+    }
+
     if (filters.budget !== null && item.price_cop > filters.budget) {
       return false;
     }
@@ -149,7 +154,13 @@ export function filterCatalog(
       return false;
     }
 
-    if (filters.category !== null && item.category !== filters.category) {
+    if (
+      filters.category !== null &&
+      filters.category.length > 0 &&
+      (Array.isArray(filters.category)
+        ? !filters.category.includes(item.category)
+        : filters.category !== item.category)
+    ) {
       return false;
     }
 

@@ -248,6 +248,7 @@ export function DiscoverySurface() {
     () =>
       searchCatalog(items, {
         q: filters.q,
+        minBudget: filters.minBudget,
         budget: filters.budget,
         category: filters.category,
         maxDistanceM: 5000,
@@ -297,7 +298,8 @@ export function DiscoverySurface() {
     setQueryInput("");
     commitFilters({
       q: "",
-      category: null,
+      category: [],
+      minBudget: 0,
       budget: null,
       openNow: false,
       order: DEFAULT_CATALOG_ORDER,

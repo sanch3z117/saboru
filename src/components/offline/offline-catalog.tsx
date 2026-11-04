@@ -165,7 +165,8 @@ export function OfflineCatalog() {
     }
     return searchCatalog(snapshotToSearchItems(snapshot, activeBlock), {
       budget: parseBudget(budget),
-      category: category || null,
+      category: category ? [category] : [],
+      minBudget: 0,
       maxDistanceM: RADIUS_M,
       openNow,
     });
