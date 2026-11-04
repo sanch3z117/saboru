@@ -148,6 +148,27 @@ test.describe("mapa del campus", () => {
     await expect(page.getByTestId("map-user-marker")).toHaveCount(0);
   });
 
+  test("si MapTiler rechaza el dominio cae a OpenStreetMap", async ({
+    page,
+  }) => {
+    await page.route(/https:\/\/api\.maptiler\.com\/.*/, (route) =>
+      route.abort(),
+    );
+    await page.route(/https:\/\/[^/]*tile\.openstreetmap\.org\/.*/, (route) =>
+      route.fulfill({ status: 200, contentType: "image/png", body: TILE }),
+    );
+
+    await page.goto("/");
+
+    await expect(page.getByTestId("campus-map")).toHaveAttribute(
+      "data-map-provider",
+      "osm",
+      { timeout: 30_000 },
+    );
+    await expectSeedMarkers(page);
+    await expect(page.getByTestId("map-fallback")).toHaveCount(0);
+  });
+
   test("si fallan las teselas muestra el listado y el reintento", async ({
     page,
   }) => {

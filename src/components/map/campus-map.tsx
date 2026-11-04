@@ -73,8 +73,14 @@ export function CampusMap({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const [osmFallback, setOsmFallback] = useState(false);
 
-  const styleConfig = useMemo(() => mapStyleFor(), []);
+  // Si MapTiler rechaza el dominio (por ejemplo, un preview sin restricción de
+  // clave), se reintenta con OSM en vez de dejar el mapa vacío.
+  const styleConfig = useMemo(
+    () => mapStyleFor(osmFallback ? null : undefined),
+    [osmFallback],
+  );
 
   useEffect(() => {
     onSelectRef.current = onSelect;
@@ -163,6 +169,16 @@ export function CampusMap({
 
     map.on("error", () => {
       errorCount += 1;
+
+      if (
+        styleConfig.provider === "maptiler" &&
+        !osmFallback &&
+        (!loaded || errorCount >= 2)
+      ) {
+        setOsmFallback(true);
+        return;
+      }
+
       if (!loaded && errorCount >= 2) {
         fail("No pudimos cargar el mapa. Revisa tu conexión.");
       } else if (loaded && errorCount >= 5) {
@@ -193,7 +209,7 @@ export function CampusMap({
         }
       }
     };
-  }, [attempt, styleConfig]);
+  }, [attempt, osmFallback, styleConfig]);
 
   // Ajusta los bounds reales y dibuja las etiquetas de los 6 bloques.
   useEffect(() => {
@@ -323,6 +339,7 @@ export function CampusMap({
       <div
         ref={mapContainerRef}
         data-testid="campus-map"
+        data-map-provider={styleConfig.provider}
         role="region"
         aria-label="Mapa interactivo del campus"
         aria-describedby={describedBy}
